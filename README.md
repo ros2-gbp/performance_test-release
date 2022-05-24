@@ -1,3 +1,28 @@
+## performance_test (foxy) - 1.0.0-2
+
+The packages in the `performance_test` repository were released into the `foxy` distro by running `/usr/bin/bloom-release --rosdistro foxy --track foxy performance_test --edit` on `Tue, 24 May 2022 15:42:19 -0000`
+
+These packages were released:
+- `performance_report`
+- `performance_test`
+
+Version of package(s) in repository `performance_test`:
+
+- upstream repository: https://gitlab.com/ApexAI/performance_test.git
+- release repository: https://github.com/ros2-gbp/performance_test-release.git
+- rosdistro version: `1.0.0-1`
+- old version: `1.0.0-1`
+- new version: `1.0.0-2`
+
+Versions of tools used:
+
+- bloom version: `0.11.1`
+- catkin_pkg version: `0.5.0`
+- rosdep version: `0.21.0`
+- rosdistro version: `0.8.3`
+- vcstools version: `0.1.42`
+
+
 ## performance_test-release (eloquent) - 1.0.0-1
 
 The packages in the `performance_test-release` repository were released into the `eloquent` distro by running `/usr/bin/bloom-release --rosdistro eloquent --track eloquent performance_test-release --edit` on `Tue, 17 May 2022 00:09:57 -0000`
