@@ -1,0 +1,12 @@
+Source: ros-humble-performance-report
+Section: misc
+Priority: optional
+Maintainer: Apex AI, Inc. <opensource@apex.ai>
+Build-Depends: debhelper (>= 9.0.0), python3-pytest, python3-yaml, ros-humble-ament-copyright, ros-humble-ament-flake8, ros-humble-ament-pep257, ros-humble-ros-workspace, python3-all, python3-setuptools
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-humble-performance-report
+Architecture: any
+Depends: ${python3:Depends}, ${misc:Depends}, chromium, python3-pandas, python3-selenium, ros-humble-performance-test, ros-humble-rclpy, ros-humble-ros-workspace
+Description: Apex.AI performance_test runner, plotter, and reporter
