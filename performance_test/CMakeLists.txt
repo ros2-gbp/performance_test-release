@@ -97,6 +97,10 @@ if(PERFORMANCE_TEST_RCLCPP_ENABLED)
     set(PERFORMANCE_TEST_RCLCPP_WAITSET_ENABLED ON)
     set(PERFORMANCE_TEST_RCLCPP_SSTE_ENABLED ON)
   endif()
+  if($ENV{ROS_DISTRO} MATCHES "humble")
+    set(PERFORMANCE_TEST_RCLCPP_WAITSET_ENABLED ON)
+    set(PERFORMANCE_TEST_RCLCPP_SSTE_ENABLED ON)
+  endif()
   if(PERFORMANCE_TEST_RCLCPP_STE_ENABLED)
     add_definitions(-DPERFORMANCE_TEST_RCLCPP_STE_ENABLED)
   endif()
@@ -109,6 +113,29 @@ if(PERFORMANCE_TEST_RCLCPP_ENABLED)
   if(PERFORMANCE_TEST_RCLCPP_ZERO_COPY_ENABLED)
     add_definitions(-DPERFORMANCE_TEST_RCLCPP_ZERO_COPY_ENABLED)
   endif()
+endif()
+
+# Apex.OS Waitset and Polling Subscription
+option(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED "Option to enable Polling Subscription Plugin.
+  The plugin can only work if ApexOS is present, otherwise it will fail." OFF)
+
+if(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
+  find_library(APEXCPP_LIB apexcpp)
+  if(NOT APEXCPP_LIB)
+    message(WARNING "ApexOSPollingSubscription not found, disabling")
+    set(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED OFF)
+  else()
+    find_package(rclcpp REQUIRED)
+    find_package(rmw REQUIRED)
+    find_package(rosidl_default_generators REQUIRED)
+    add_definitions(-DPERFORMANCE_TEST_RCLCPP_ENABLED)
+    add_definitions(-DPERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
+  endif()
+endif()
+
+option(APEX_CERT "Set to true if building against Apex.OS Cert" OFF)
+if(APEX_CERT)
+  add_definitions(-DAPEX_CERT)
 endif()
 
 # FastRTPS
@@ -195,7 +222,7 @@ endif()
 add_subdirectory(msg)
 include_directories(${IDLGEN_INCLUDE_DIR})
 
-if(PERFORMANCE_TEST_RCLCPP_ENABLED)
+if(PERFORMANCE_TEST_RCLCPP_ENABLED OR PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
   # rosidl_generate_interfaces must be invoked from this CMakeLists.txt file. Otherwise, the
   # generated messages are placed in a directory where ros1_bridge can not find them.
   rosidl_generate_interfaces(${PROJECT_NAME} ${ROSIDL_GEN_LIST})
@@ -262,6 +289,10 @@ if(PERFORMANCE_TEST_RCLCPP_WAITSET_ENABLED)
   list(APPEND sources src/communication_abstractions/rclcpp_waitset_communicator.hpp)
   list(APPEND sources src/data_running/factories/rclcpp_waitset_data_runner_factory.cpp)
   list(APPEND sources src/data_running/factories/rclcpp_waitset_data_runner_factory.hpp)
+endif()
+
+if(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
+  list(APPEND sources src/communication_abstractions/apex_os_polling_subscription_communicator.hpp)
 endif()
 
 if(PERFORMANCE_TEST_FASTRTPS_ENABLED)
@@ -332,6 +363,13 @@ externalproject_add(
   GIT_SHALLOW TRUE
   PREFIX ${EXTERNAL_INSTALL_LOCATION}
   SOURCE_DIR ${EXTERNAL_INSTALL_LOCATION}/tabulate
+  PATCH_COMMAND sed -i "39d" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/column.hpp"
+        COMMAND sed -i "88 a #endif" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
+        COMMAND sed -i "77 a #if !defined(QNX)" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
+        COMMAND sed -i "75 a #endif" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
+        COMMAND sed -i "74 a #if !defined(QNX)" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
+        COMMAND sed -i "71 a #endif" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
+        COMMAND sed -i "47 a #if !defined(QNX)" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
   CMAKE_COMMAND ""
   CONFIGURE_COMMAND ""
   UPDATE_COMMAND ""
@@ -347,7 +385,9 @@ externalproject_add(
   GIT_SHALLOW TRUE
   PREFIX ${EXTERNAL_INSTALL_LOCATION}
   SOURCE_DIR ${EXTERNAL_INSTALL_LOCATION}/sole
-  PATCH_COMMAND patch ${EXTERNAL_INSTALL_LOCATION}/sole/sole.hpp ${CMAKE_CURRENT_SOURCE_DIR}/external_patches/sole.hpp.patch
+  PATCH_COMMAND patch
+        ${EXTERNAL_INSTALL_LOCATION}/sole/sole.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/external_patches/sole.hpp.patch
   CMAKE_COMMAND ""
   CONFIGURE_COMMAND ""
   UPDATE_COMMAND ""
@@ -373,7 +413,10 @@ execute_process(
 add_definitions(-DPERFORMANCE_TEST_VERSION="${PERF_TEST_VERSION}")
 
 if(PERFORMANCE_TEST_RCLCPP_ENABLED)
-  if($ENV{ROS_DISTRO} MATCHES "galactic")
+  if($ENV{ROS_DISTRO} MATCHES "humble")
+    rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
+    target_link_libraries(${EXE_NAME} "${cpp_typesupport_target}")
+  elseif($ENV{ROS_DISTRO} MATCHES "galactic")
     rosidl_target_interfaces(${EXE_NAME} ${PROJECT_NAME} "rosidl_typesupport_cpp")
   elseif($ENV{ROS_DISTRO} MATCHES "foxy")
     rosidl_target_interfaces(${EXE_NAME} ${PROJECT_NAME} "rosidl_typesupport_cpp")
@@ -388,6 +431,15 @@ if(PERFORMANCE_TEST_RCLCPP_ENABLED)
     message(FATAL_ERROR "Unsupported ROS_DISTRO")
   endif()
   ament_target_dependencies(${EXE_NAME} "rclcpp")
+endif()
+
+if(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
+  if(APEX_CERT)
+    set(TYPESUPPORT_INTERFACE rosidl_typesupport_apex_middleware_cpp)
+  else()
+    set(TYPESUPPORT_INTERFACE rosidl_typesupport_cpp)
+  endif()
+  rosidl_target_interfaces(${EXE_NAME} ${PROJECT_NAME} ${TYPESUPPORT_INTERFACE})
 endif()
 
 ament_target_dependencies(${EXE_NAME} ${OPTIONAL_AMENT_DEPENDENCES})

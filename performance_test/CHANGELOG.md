@@ -1,5 +1,11 @@
 # Changelog for package performance_test
 
+## 1.1.0 (2022/06/02)
+
+### Added
+- New Apex.OS Polling Subscription plugin
+- Compatibility with ROS2 Humble
+
 ## 1.0.0 (2022/05/12)
 
 ### Added

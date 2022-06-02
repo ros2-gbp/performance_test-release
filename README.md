@@ -18,12 +18,12 @@ are automatically recorded when the application is running:
 
 This `master` branch is compatible with the following ROS2 versions
 - rolling
+- humble
 - galactic
 - foxy
 - eloquent
 - dashing
-
-For using `performance_test` with Apex.OS, switch to [`apex-os`](https://gitlab.com/ApexAI/performance_test/-/tree/apex-os) branch.
+- Apex.OS
 
 ## How to use this document
 
@@ -309,6 +309,18 @@ through the ROS2 `rclcpp::publisher` and `rclcpp::subscriber` API.
     - You can find a list of several other middleware options
       [here](https://docs.ros.org/en/rolling/Concepts/About-Different-Middleware-Vendors.html).
 - Default transports: depends on underlying RMW implementation
+
+#### Apex.OS Polling Subscription
+
+- Apex.OS Polling Subscription with wait-set
+- CMake build flag: `-DPERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED=ON`
+- Communication plugin: `-c ApexOSPollingSubscription`
+- Zero copy transport (`--zero_copy`): yes (see the Apex.OS documentation for configuration instructions)
+- Docker file: Not available
+- Default transports:
+  | INTRA | IPC on same machine | Distributed system |
+  |-------|---------------------|--------------------|
+  | INTRA | UDP                 | UDP                |
 
 ## Analyze the results
 
