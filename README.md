@@ -1,3 +1,29 @@
+## performance_test-release (rolling) - 1.2.1-1
+
+The packages in the `performance_test-release` repository were released into the `rolling` distro by running `/usr/bin/bloom-release --rosdistro rolling --track rolling performance_test-release --edit` on `Thu, 30 Jun 2022 21:31:55 -0000`
+
+The `performance_test` package was released.
+
+These packages were explicitly ignored:
+- `performance_report`
+
+Version of package(s) in repository `performance_test-release`:
+
+- upstream repository: https://gitlab.com/ApexAI/performance_test.git
+- release repository: unknown
+- rosdistro version: `null`
+- old version: `1.0.0-1`
+- new version: `1.2.1-1`
+
+Versions of tools used:
+
+- bloom version: `0.9.1`
+- catkin_pkg version: `0.5.0`
+- rosdep version: `0.18.0`
+- rosdistro version: `0.8.3`
+- vcstools version: `0.1.42`
+
+
 ## performance_test-release (humble) - 1.1.0-1
 
 The packages in the `performance_test-release` repository were released into the `humble` distro by running `/usr/bin/bloom-release --rosdistro humble --track humble performance_test-release --edit` on `Thu, 02 Jun 2022 15:40:02 -0000`
