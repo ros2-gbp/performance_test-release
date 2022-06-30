@@ -129,6 +129,7 @@ if(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
     find_package(rmw REQUIRED)
     find_package(rosidl_default_generators REQUIRED)
     add_definitions(-DPERFORMANCE_TEST_RCLCPP_ENABLED)
+    add_definitions(-DPERFORMANCE_TEST_RCLCPP_ZERO_COPY_ENABLED)
     add_definitions(-DPERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
   endif()
 endif()
@@ -229,35 +230,33 @@ if(PERFORMANCE_TEST_RCLCPP_ENABLED OR PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPT
 endif()
 
 
-set(${PROJECT_NAME}_SOURCES
-    src/experiment_execution/analyze_runner.cpp)
-
-set(${PROJECT_NAME}_HEADERS
-    src/experiment_configuration/experiment_configuration.hpp
-    src/experiment_execution/analysis_result.hpp)
-
 set(sources
     src/main.cpp
-    src/communication_abstractions/communicator.hpp
     src/communication_abstractions/communicator.cpp
+    src/communication_abstractions/communicator.hpp
     src/communication_abstractions/resource_manager.cpp
     src/communication_abstractions/resource_manager.hpp
     src/outputs/stdout_output.cpp
     src/outputs/csv_output.cpp
     src/outputs/json_output.cpp
-    src/data_running/data_runner.hpp
-    src/data_running/data_runner_base.hpp
-    src/data_running/data_runner_factory.cpp
-    src/data_running/data_runner_factory.hpp
-    src/experiment_execution/analyze_runner.hpp
+    src/data_running/data_publisher.hpp
+    src/data_running/data_subscriber.hpp
+    src/data_running/data_entity.hpp
+    src/data_running/data_entity_factory.cpp
+    src/data_running/data_entity_factory.hpp
     src/experiment_execution/analysis_result.cpp
+    src/experiment_execution/analysis_result.hpp
+    src/experiment_execution/runner.hpp
+    src/experiment_execution/data_stats.hpp
+    src/experiment_execution/run_type.hpp
     src/experiment_configuration/communication_mean.cpp
     src/experiment_configuration/communication_mean.hpp
     src/experiment_configuration/qos_abstraction.cpp
     src/experiment_configuration/qos_abstraction.hpp
     src/experiment_configuration/experiment_configuration.cpp
-    src/experiment_configuration/external_info_storage.hpp
+    src/experiment_configuration/experiment_configuration.hpp
     src/experiment_configuration/external_info_storage.cpp
+    src/experiment_configuration/external_info_storage.hpp
     src/utilities/spin_lock.hpp
     src/utilities/statistics_tracker.hpp
     src/utilities/cpu_usage_tracker.hpp
@@ -397,7 +396,7 @@ externalproject_add(
 include_directories(SYSTEM ${EXTERNAL_INSTALL_LOCATION})
 
 set(EXE_NAME perf_test)
-add_executable(${EXE_NAME} ${${PROJECT_NAME}_SOURCES} ${sources} ${${PROJECT_NAME}_HEADERS})
+add_executable(${EXE_NAME} ${sources})
 add_dependencies(${EXE_NAME} tclap rapidjson tabulate sole)
 
 
@@ -440,6 +439,7 @@ if(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
     set(TYPESUPPORT_INTERFACE rosidl_typesupport_cpp)
   endif()
   rosidl_target_interfaces(${EXE_NAME} ${PROJECT_NAME} ${TYPESUPPORT_INTERFACE})
+  ament_target_dependencies(${EXE_NAME} "rclcpp")
 endif()
 
 ament_target_dependencies(${EXE_NAME} ${OPTIONAL_AMENT_DEPENDENCES})
@@ -453,10 +453,24 @@ target_link_libraries(
 )
 
 if(BUILD_TESTING)
-    find_package(ament_lint_auto REQUIRED)
-    ament_lint_auto_find_test_dependencies()
-    list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_copyright)
-    ament_copyright(${${PROJECT_NAME}_SOURCES} ${sources} ${${PROJECT_NAME}_HEADERS})
+    find_package(ament_cmake_copyright REQUIRED)
+    ament_copyright()
+
+    find_package(ament_cmake_cppcheck REQUIRED)
+    ament_cppcheck(
+        ${sources})
+
+    find_package(ament_cmake_cpplint REQUIRED)
+    ament_cpplint(
+        FILTERS "-build/include_order")
+
+    find_package(ament_cmake_uncrustify REQUIRED)
+    ament_uncrustify(
+        CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../ament_code_style.cfg"
+        ${sources})
+
+    find_package(ament_cmake_lint_cmake REQUIRED)
+    ament_lint_cmake()
 
     set(APEX_PERFORMANCE_TEST_GTEST apex_performance_test_gtest)
 
