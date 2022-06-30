@@ -1,0 +1,12 @@
+Source: ros-humble-performance-test
+Section: misc
+Priority: optional
+Maintainer: Apex AI, Inc. <opensource@apex.ai>
+Build-Depends: debhelper (>= 9.0.0), ros-humble-ament-cmake, ros-humble-ament-cmake-gtest, ros-humble-ament-lint-auto, ros-humble-ament-lint-common, ros-humble-launch, ros-humble-launch-testing, ros-humble-osrf-testing-tools-cpp, ros-humble-rclcpp, ros-humble-rmw-implementation-cmake, ros-humble-rosidl-default-generators, ros-humble-ros-workspace, ros-humble-rmw-connext-cpp, ros-humble-rmw-fastrtps-cpp, ros-humble-rmw-implementation, ros-humble-rmw-opensplice-cpp, ros-humble-rosidl-typesupport-connext-c, ros-humble-rosidl-typesupport-connext-cpp, ros-humble-rosidl-typesupport-opensplice-c, ros-humble-rosidl-typesupport-opensplice-cpp
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-humble-performance-test
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-humble-rclcpp, ros-humble-rmw-implementation, ros-humble-rosidl-default-runtime, ros-humble-ros-workspace
+Description: Tool to test performance of ROS2 and DDS data layers and communication.
