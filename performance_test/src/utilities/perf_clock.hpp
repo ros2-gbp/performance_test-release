@@ -1,4 +1,4 @@
-// Copyright 2017 Apex.AI, Inc.
+// Copyright 2022 Apex.AI, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef UTILITIES__PERF_CLOCK_HPP_
+#define UTILITIES__PERF_CLOCK_HPP_
+
 #include <chrono>
 
-#include "communicator.hpp"
+using perf_clock = std::chrono::steady_clock;
 
-namespace performance_test
-{
-
-Communicator::Communicator(DataStats & stats)
-: m_stats(stats), m_ec(ExperimentConfiguration::get())
-{
-}
-
-}  // namespace performance_test
+#endif  // UTILITIES__PERF_CLOCK_HPP_

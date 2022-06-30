@@ -20,9 +20,16 @@
 #include <rmw/rmw.h>
 #endif
 
+#ifdef PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED
+#include <settings/inspect.hpp>
+#include <settings/repository.hpp>
+#include <cyclone_dds_vendor/dds.hpp>
+#endif
+
 #include <iostream>
 #include <iomanip>
 #include <exception>
+#include <regex>
 #include <string>
 #include <vector>
 #include <memory>
@@ -65,7 +72,7 @@ std::ostream & operator<<(std::ostream & stream, const ExperimentConfiguration &
     return stream <<
            "Experiment id: " << e.id() <<
            "\nPerformance Test Version: " << e.perf_test_version() <<
-           "\nLogfile name: " << e.csv_logfile() <<
+           "\nLogfile name: " << e.logfile_name() <<
            "\nCommunication mean: " << e.com_mean() <<
            "\nRMW Implementation: " << e.rmw_implementation() <<
            "\nDDS domain id: " << e.dds_domain_id() <<
@@ -78,6 +85,7 @@ std::ostream & operator<<(std::ostream & stream, const ExperimentConfiguration &
            "\nNumber of subscribers: " << e.number_of_subscribers() <<
            "\nMemory check enabled: " << e.check_memory() <<
            "\nWith security: " << e.is_with_security() <<
+           "\nShared memory transfer: " << e.is_shared_memory_transfer() <<
            "\nZero copy transfer: " << e.is_zero_copy_transfer() <<
            "\nUnbounded message size: " << e.unbounded_msg_size() <<
            "\nRoundtrip Mode: " << e.roundtrip_mode() <<
@@ -123,18 +131,12 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
   try {
     TCLAP::CmdLine cmd("Apex.AI performance_test");
 
-    std::vector<std::string> allowedOutputs{"stdout", "csv", "json", "none"};
-    TCLAP::ValuesConstraint<std::string> allowedOutputConstraint(
-      allowedOutputs);
-    TCLAP::MultiArg<std::string> outputArg(
-      "o", "output", "Specify format to output experiment results. Default is stdout.", false,
-      &allowedOutputConstraint, cmd);
+    TCLAP::SwitchArg printToConsoleArg("", "print-to-console",
+      "Print metrics to console.", cmd, false);
 
-    TCLAP::ValueArg<std::string> csvLogfileArg("l", "csv-logfile",
-      "Optionally specify a file name for the csv results.", false, "", "name", cmd);
-
-    TCLAP::ValueArg<std::string> jsonLogfileArg("", "json-logfile",
-      "Optionally specify a file name for the json results.", false, "", "name", cmd);
+    TCLAP::ValueArg<std::string> LogfileArg("l", "logfile",
+      "Specify the name of the log file, e.g. -l \"log_$(date +%F_%H-%M-%S).json\"."
+      " Supported formats: csv, json", false, "", "name", cmd);
 
     TCLAP::ValueArg<uint32_t> rateArg("r", "rate",
       "The publishing rate. 0 means publish as fast as possible. "
@@ -150,6 +152,9 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
 #endif
 #ifdef PERFORMANCE_TEST_RCLCPP_WAITSET_ENABLED
     allowedCommunications.push_back("rclcpp-waitset");
+#endif
+#ifdef PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED
+    allowedCommunications.push_back("ApexOSPollingSubscription");
 #endif
 #ifdef PERFORMANCE_TEST_FASTRTPS_ENABLED
     allowedCommunications.push_back("FastRTPS");
@@ -280,35 +285,9 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
 
     cmd.parse(argc, argv);
 
-    // default to only stdout output
-    if (outputArg.getValue().empty()) {
-      m_configured_output_types.push_back(SupportedOutput::STDOUT);
-      m_configured_outputs.push_back(std::make_shared<StdoutOutput>());
-    }
-
-    // set up configured outputs
-    for (const auto & output : outputArg.getValue()) {
-      if (output == "stdout") {
-        m_configured_output_types.push_back(SupportedOutput::STDOUT);
-        m_configured_outputs.push_back(std::make_shared<StdoutOutput>());
-      } else if (output == "csv") {
-        m_configured_output_types.push_back(SupportedOutput::CSV);
-        m_configured_outputs.push_back(std::make_shared<CsvOutput>());
-      } else if (output == "json") {
-        m_configured_output_types.push_back(SupportedOutput::JSON);
-        m_configured_outputs.push_back(std::make_shared<JsonOutput>());
-      } else if (output == "none") {
-        // do nothing
-      } else {
-        std::cerr << "Unknown output type specified: " << output << std::endl;
-        std::terminate();
-      }
-    }
-
-    m_csv_logfile = csvLogfileArg.getValue();
-    m_json_logfile = jsonLogfileArg.getValue();
     m_rate = rateArg.getValue();
     comm_str = communicationArg.getValue();
+    m_logfile_name = LogfileArg.getValue();
     m_topic_name = topicArg.getValue();
     m_msg_name = msgArg.getValue();
     print_msg_list = msgListArg.getValue();
@@ -335,6 +314,28 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
     m_wait_for_matched_timeout = waitForMatchedTimeoutArg.getValue();
     m_is_zero_copy_transfer = zeroCopyArg.getValue();
     m_unbounded_msg_size = unboundedMsgSizeArg.getValue();
+
+    // Configure outputs
+    if (printToConsoleArg.getValue()) {
+      std::cout << "WARNING: Printing to the console degrades the performance." << std::endl;
+      std::cout << "It is recommended to use a log file instead with --logfile." << std::endl;
+      m_configured_outputs.push_back(std::make_shared<StdoutOutput>());
+    }
+
+    if (!m_logfile_name.empty()) {
+      if (std::regex_match(m_logfile_name, std::regex(".*\\.csv$"))) {
+        m_configured_outputs.push_back(std::make_shared<CsvOutput>());
+      } else if (std::regex_match(m_logfile_name, std::regex(".*\\.json$"))) {
+        m_configured_outputs.push_back(std::make_shared<JsonOutput>());
+      } else {
+        std::cerr << "Unsupported log file type: " << m_logfile_name << std::endl;
+        std::terminate();
+      }
+    }
+
+    if (m_configured_outputs.empty()) {
+      std::cout << "WARNING: No output configured" << std::endl;
+    }
   } catch (TCLAP::ArgException & e) {
     std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
   }
@@ -364,6 +365,11 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
 #ifdef PERFORMANCE_TEST_RCLCPP_WAITSET_ENABLED
     if (comm_str == "rclcpp-waitset") {
       m_com_mean = CommunicationMean::RCLCPP_WAITSET;
+    }
+#endif
+#ifdef PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED
+    if (comm_str == "ApexOSPollingSubscription") {
+      m_com_mean = CommunicationMean::ApexOSPollingSubscription;
     }
 #endif
 #ifdef PERFORMANCE_TEST_FASTRTPS_ENABLED
@@ -469,13 +475,6 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
       }
     }
 
-    if (m_is_zero_copy_transfer) {
-      if (m_number_of_publishers > 0 && m_number_of_subscribers > 0) {
-        throw std::invalid_argument(
-                "Zero copy transfer only makes sense for interprocess communication!");
-      }
-    }
-
     m_roundtrip_mode = RoundTripMode::NONE;
     const auto mode = roundtrip_mode_str;
     if (mode == "None") {
@@ -493,23 +492,6 @@ void ExperimentConfiguration::setup(int argc, char ** argv)
 #else
     m_rmw_implementation = "N/A";
 #endif
-
-    // define default output files if none specified
-    if (m_csv_logfile == "") {
-      auto t = std::time(nullptr);
-      auto tm = *std::gmtime(&t);
-      auto oss = std::ostringstream();
-      oss << "results_" << m_topic_name << std::put_time(&tm, "_%d-%m-%Y_%H-%M-%S") << ".csv";
-      m_csv_logfile = oss.str();
-    }
-    if (m_json_logfile == "") {
-      auto t = std::time(nullptr);
-      auto tm = *std::gmtime(&t);
-      auto oss = std::ostringstream();
-      oss << "results_" << m_topic_name << std::put_time(&tm, "_%d-%m-%Y_%H-%M-%S") << ".json";
-      m_json_logfile = oss.str();
-    }
-
     m_is_setup = true;
   } catch (const std::exception & e) {
     std::cerr << "ERROR: ";
@@ -541,6 +523,11 @@ bool ExperimentConfiguration::use_ros2_layers() const
 #endif
 #ifdef PERFORMANCE_TEST_RCLCPP_WAITSET_ENABLED
   if (m_com_mean == CommunicationMean::RCLCPP_WAITSET) {
+    return true;
+  }
+#endif
+#ifdef PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED
+  if (com_mean() == CommunicationMean::ApexOSPollingSubscription) {
     return true;
   }
 #endif
@@ -627,6 +614,20 @@ bool ExperimentConfiguration::is_with_security() const
   return m_with_security;
 }
 
+bool ExperimentConfiguration::is_shared_memory_transfer() const
+{
+  check_setup();
+#ifdef PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED
+#ifdef DDSCXX_HAS_SHM
+  if (rmw_implementation() == "rmw_apex_middleware" && use_ros2_layers()) {
+    return apex::settings::inspect::get_or_default<bool>(
+      apex::settings::repository::get(), "domain/shared_memory/enable", false);
+  }
+#endif
+#endif
+  return false;
+}
+
 bool ExperimentConfiguration::is_zero_copy_transfer() const
 {
   check_setup();
@@ -679,17 +680,10 @@ std::string ExperimentConfiguration::id() const
   return m_id;
 }
 
-std::string ExperimentConfiguration::csv_logfile() const
+std::string ExperimentConfiguration::logfile_name() const
 {
   check_setup();
-  return m_csv_logfile;
-}
-
-const std::vector<ExperimentConfiguration::SupportedOutput> &
-ExperimentConfiguration::configured_output_types() const
-{
-  check_setup();
-  return m_configured_output_types;
+  return m_logfile_name;
 }
 
 const std::vector<std::shared_ptr<Output>> &
@@ -697,12 +691,6 @@ ExperimentConfiguration::configured_outputs() const
 {
   check_setup();
   return m_configured_outputs;
-}
-
-std::string ExperimentConfiguration::json_logfile() const
-{
-  check_setup();
-  return m_json_logfile;
 }
 
 size_t ExperimentConfiguration::unbounded_msg_size() const
