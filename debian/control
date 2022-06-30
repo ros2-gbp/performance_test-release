@@ -1,0 +1,12 @@
+Source: ros-galactic-performance-test
+Section: misc
+Priority: optional
+Maintainer: Apex AI, Inc. <opensource@apex.ai>
+Build-Depends: debhelper (>= 9.0.0), ros-galactic-ament-cmake, ros-galactic-ament-cmake-gtest, ros-galactic-ament-lint-auto, ros-galactic-ament-lint-common, ros-galactic-launch, ros-galactic-launch-testing, ros-galactic-osrf-testing-tools-cpp, ros-galactic-rclcpp, ros-galactic-rmw-implementation-cmake, ros-galactic-rosidl-default-generators, ros-galactic-ros-workspace, ros-galactic-rmw-connext-cpp, ros-galactic-rmw-fastrtps-cpp, ros-galactic-rmw-implementation, ros-galactic-rmw-opensplice-cpp, ros-galactic-rosidl-typesupport-connext-c, ros-galactic-rosidl-typesupport-connext-cpp, ros-galactic-rosidl-typesupport-opensplice-c, ros-galactic-rosidl-typesupport-opensplice-cpp
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-galactic-performance-test
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-galactic-rclcpp, ros-galactic-rmw-implementation, ros-galactic-rosidl-default-runtime, ros-galactic-ros-workspace
+Description: Tool to test performance of ROS2 and DDS data layers and communication.
