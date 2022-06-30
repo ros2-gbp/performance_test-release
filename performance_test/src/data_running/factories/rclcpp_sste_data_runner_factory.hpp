@@ -18,13 +18,17 @@
 #include <memory>
 #include <string>
 
-#include "../data_runner_base.hpp"
+
+#include "../data_entity.hpp"
 
 namespace performance_test
 {
 namespace RclcppSsteDataRunnerFactory
 {
-std::shared_ptr<DataRunnerBase> get(const std::string & msg_name, const RunType run_type);
+std::shared_ptr<DataEntity> get(
+  const std::string & msg_name,
+  const RunType run_type,
+  DataStats & stats);
 }  // namespace RclcppSsteDataRunnerFactory
 }  // namespace performance_test
 

@@ -28,6 +28,8 @@
 #include <chrono>
 #endif  // defined(QNX)
 
+#include "../utilities/perf_clock.hpp"
+
 namespace performance_test
 {
 
@@ -78,7 +80,7 @@ public:
     float_t cpu_usage_local{};
 
     int64_t cur_time_ms =
-      std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()).
+      std::chrono::time_point_cast<std::chrono::milliseconds>(perf_clock::now()).
       time_since_epoch().count();
 
     if (-1 != clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cur_usage_st)) {
@@ -133,15 +135,15 @@ public:
 
 private:
 #if defined(QNX)
-  int64_t m_prev_active_time;
-  int64_t m_prev_total_time;
-  uint32_t m_tot_cpu_cores;
+  int64_t m_prev_active_time{};
+  int64_t m_prev_total_time{};
+  uint32_t m_tot_cpu_cores{};
 #else
-  unsigned int m_cpu_cores;
-  int64_t m_ticks_to_ns;
-  int64_t m_user_time;
-  int64_t m_system_time;
-  int64_t m_wall_time;
+  unsigned int m_cpu_cores{};
+  int64_t m_ticks_to_ns{};
+  int64_t m_user_time{};
+  int64_t m_system_time{};
+  int64_t m_wall_time{};
 #endif  // defined(QNX)
 };
 }  // namespace performance_test
