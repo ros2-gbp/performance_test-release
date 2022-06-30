@@ -1,0 +1,12 @@
+Source: ros-foxy-performance-test
+Section: misc
+Priority: optional
+Maintainer: Apex AI, Inc. <opensource@apex.ai>
+Build-Depends: debhelper (>= 9.0.0), ros-foxy-ament-cmake, ros-foxy-ament-cmake-gtest, ros-foxy-ament-lint-auto, ros-foxy-ament-lint-common, ros-foxy-launch, ros-foxy-launch-testing, ros-foxy-osrf-testing-tools-cpp, ros-foxy-rclcpp, ros-foxy-rmw-implementation-cmake, ros-foxy-rosidl-default-generators, ros-foxy-ros-workspace, ros-foxy-rmw-connext-cpp, ros-foxy-rmw-fastrtps-cpp, ros-foxy-rmw-implementation, ros-foxy-rmw-opensplice-cpp, ros-foxy-rosidl-typesupport-connext-c, ros-foxy-rosidl-typesupport-connext-cpp, ros-foxy-rosidl-typesupport-opensplice-c, ros-foxy-rosidl-typesupport-opensplice-cpp
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-foxy-performance-test
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-foxy-rclcpp, ros-foxy-rmw-implementation, ros-foxy-rosidl-default-runtime, ros-foxy-ros-workspace
+Description: Tool to test performance of ROS2 and DDS data layers and communication.
