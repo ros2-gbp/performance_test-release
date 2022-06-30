@@ -135,15 +135,15 @@ public:
 
 private:
 #if defined(QNX)
-  int64_t m_prev_active_time;
-  int64_t m_prev_total_time;
-  uint32_t m_tot_cpu_cores;
+  int64_t m_prev_active_time{};
+  int64_t m_prev_total_time{};
+  uint32_t m_tot_cpu_cores{};
 #else
-  unsigned int m_cpu_cores;
-  int64_t m_ticks_to_ns;
-  int64_t m_user_time;
-  int64_t m_system_time;
-  int64_t m_wall_time;
+  unsigned int m_cpu_cores{};
+  int64_t m_ticks_to_ns{};
+  int64_t m_user_time{};
+  int64_t m_system_time{};
+  int64_t m_wall_time{};
 #endif  // defined(QNX)
 };
 }  // namespace performance_test

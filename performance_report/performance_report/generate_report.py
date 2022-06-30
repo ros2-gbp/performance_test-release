@@ -20,7 +20,7 @@ import bokeh.util.version
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from .figures import generateFigure
-from .logs import getDatasets
+from .logs import getDatasets, coerce_to_list
 from .utils import PerfArgParser
 
 
@@ -38,21 +38,23 @@ def generateReports(report_cfg_file, log_dir):
                     html_figures[fig['name']] = script + div
                 # add current bokeh CDN version to template variables
                 html_figures['bokeh_version'] = bokeh.util.version.base_version()
-                # fill in template
-                template_dir, template_file = os.path.split(report_cfg['template_name'])
-                loader_dir = os.path.join(cfg_dir, template_dir)
-                env = Environment(
-                    loader=FileSystemLoader(loader_dir),
-                    autoescape=select_autoescape()
-                )
-                template = env.get_template(template_file)
-                # output should match input file extension to support .md and .html reports
-                template_file_extension = template_file.split('.')[-1]
-                report_title = report_cfg['report_title']
-                output = template.render(html_figures, title=report_title)
-                output_file = os.path.join(log_dir, report_name + '.' + template_file_extension)
-                with open(output_file, 'w') as result:
-                    result.write(output)
+                # fill in templates
+                for template in coerce_to_list(report_cfg['template_name']):
+                    template_dir, template_file = os.path.split(template)
+                    loader_dir = os.path.join(cfg_dir, template_dir)
+                    env = Environment(
+                        loader=FileSystemLoader(loader_dir),
+                        autoescape=select_autoescape()
+                    )
+                    template = env.get_template(template_file)
+                    # output should match input file extension to support .md and .html reports
+                    template_file_extension = template_file.split('.')[-1]
+                    report_title = report_cfg['report_title']
+                    output = template.render(html_figures, title=report_title)
+                    output_file = \
+                        os.path.join(log_dir, report_name + '.' + template_file_extension)
+                    with open(output_file, 'w') as result:
+                        result.write(output)
         except KeyError:
             print("Oops, something is wrong with the provided"
                   "report configuration file....exiting")
