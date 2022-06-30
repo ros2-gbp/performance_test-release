@@ -33,21 +33,25 @@ public:
   /// The data type to publish and subscribe to.
   using DataType = typename RclcppCommunicator<Msg>::DataType;
 
-  /// Constructor which takes a reference \param lock to the lock to use.
-  explicit RclcppCallbackCommunicator(SpinLock & lock)
-  : RclcppCommunicator<Msg>(lock),
-    m_subscription(nullptr)
+  explicit RclcppCallbackCommunicator(DataStats & stats)
+  : RclcppCommunicator<Msg>(stats), m_subscription(nullptr)
   {
     m_executor.add_node(this->m_node);
   }
 
-  /// Reads received data from ROS 2 using callbacks
   void update_subscription() override
   {
     if (!m_subscription) {
       m_subscription = this->m_node->template create_subscription<DataType>(
         this->m_ec.topic_name() + this->m_ec.sub_topic_postfix(), this->m_ROS2QOSAdapter,
         [this](const typename DataType::SharedPtr data) {this->callback(data);});
+#ifdef PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED
+      if (this->m_ec.expected_num_pubs() > 0) {
+        m_subscription->wait_for_matched(
+          this->m_ec.expected_num_pubs(),
+          this->m_ec.expected_wait_for_matched_timeout());
+      }
+#endif
     }
     m_executor.spin_once(std::chrono::milliseconds(100));
   }

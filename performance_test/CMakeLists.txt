@@ -97,6 +97,10 @@ if(PERFORMANCE_TEST_RCLCPP_ENABLED)
     set(PERFORMANCE_TEST_RCLCPP_WAITSET_ENABLED ON)
     set(PERFORMANCE_TEST_RCLCPP_SSTE_ENABLED ON)
   endif()
+  if($ENV{ROS_DISTRO} MATCHES "humble")
+    set(PERFORMANCE_TEST_RCLCPP_WAITSET_ENABLED ON)
+    set(PERFORMANCE_TEST_RCLCPP_SSTE_ENABLED ON)
+  endif()
   if(PERFORMANCE_TEST_RCLCPP_STE_ENABLED)
     add_definitions(-DPERFORMANCE_TEST_RCLCPP_STE_ENABLED)
   endif()
@@ -109,6 +113,30 @@ if(PERFORMANCE_TEST_RCLCPP_ENABLED)
   if(PERFORMANCE_TEST_RCLCPP_ZERO_COPY_ENABLED)
     add_definitions(-DPERFORMANCE_TEST_RCLCPP_ZERO_COPY_ENABLED)
   endif()
+endif()
+
+# Apex.OS Waitset and Polling Subscription
+option(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED "Option to enable Polling Subscription Plugin.
+  The plugin can only work if ApexOS is present, otherwise it will fail." OFF)
+
+if(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
+  find_library(APEXCPP_LIB apexcpp)
+  if(NOT APEXCPP_LIB)
+    message(WARNING "ApexOSPollingSubscription not found, disabling")
+    set(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED OFF)
+  else()
+    find_package(rclcpp REQUIRED)
+    find_package(rmw REQUIRED)
+    find_package(rosidl_default_generators REQUIRED)
+    add_definitions(-DPERFORMANCE_TEST_RCLCPP_ENABLED)
+    add_definitions(-DPERFORMANCE_TEST_RCLCPP_ZERO_COPY_ENABLED)
+    add_definitions(-DPERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
+  endif()
+endif()
+
+option(APEX_CERT "Set to true if building against Apex.OS Cert" OFF)
+if(APEX_CERT)
+  add_definitions(-DAPEX_CERT)
 endif()
 
 # FastRTPS
@@ -195,42 +223,40 @@ endif()
 add_subdirectory(msg)
 include_directories(${IDLGEN_INCLUDE_DIR})
 
-if(PERFORMANCE_TEST_RCLCPP_ENABLED)
+if(PERFORMANCE_TEST_RCLCPP_ENABLED OR PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
   # rosidl_generate_interfaces must be invoked from this CMakeLists.txt file. Otherwise, the
   # generated messages are placed in a directory where ros1_bridge can not find them.
   rosidl_generate_interfaces(${PROJECT_NAME} ${ROSIDL_GEN_LIST})
 endif()
 
 
-set(${PROJECT_NAME}_SOURCES
-    src/experiment_execution/analyze_runner.cpp)
-
-set(${PROJECT_NAME}_HEADERS
-    src/experiment_configuration/experiment_configuration.hpp
-    src/experiment_execution/analysis_result.hpp)
-
 set(sources
     src/main.cpp
-    src/communication_abstractions/communicator.hpp
     src/communication_abstractions/communicator.cpp
+    src/communication_abstractions/communicator.hpp
     src/communication_abstractions/resource_manager.cpp
     src/communication_abstractions/resource_manager.hpp
     src/outputs/stdout_output.cpp
     src/outputs/csv_output.cpp
     src/outputs/json_output.cpp
-    src/data_running/data_runner.hpp
-    src/data_running/data_runner_base.hpp
-    src/data_running/data_runner_factory.cpp
-    src/data_running/data_runner_factory.hpp
-    src/experiment_execution/analyze_runner.hpp
+    src/data_running/data_publisher.hpp
+    src/data_running/data_subscriber.hpp
+    src/data_running/data_entity.hpp
+    src/data_running/data_entity_factory.cpp
+    src/data_running/data_entity_factory.hpp
     src/experiment_execution/analysis_result.cpp
+    src/experiment_execution/analysis_result.hpp
+    src/experiment_execution/runner.hpp
+    src/experiment_execution/data_stats.hpp
+    src/experiment_execution/run_type.hpp
     src/experiment_configuration/communication_mean.cpp
     src/experiment_configuration/communication_mean.hpp
     src/experiment_configuration/qos_abstraction.cpp
     src/experiment_configuration/qos_abstraction.hpp
     src/experiment_configuration/experiment_configuration.cpp
-    src/experiment_configuration/external_info_storage.hpp
+    src/experiment_configuration/experiment_configuration.hpp
     src/experiment_configuration/external_info_storage.cpp
+    src/experiment_configuration/external_info_storage.hpp
     src/utilities/spin_lock.hpp
     src/utilities/statistics_tracker.hpp
     src/utilities/cpu_usage_tracker.hpp
@@ -262,6 +288,10 @@ if(PERFORMANCE_TEST_RCLCPP_WAITSET_ENABLED)
   list(APPEND sources src/communication_abstractions/rclcpp_waitset_communicator.hpp)
   list(APPEND sources src/data_running/factories/rclcpp_waitset_data_runner_factory.cpp)
   list(APPEND sources src/data_running/factories/rclcpp_waitset_data_runner_factory.hpp)
+endif()
+
+if(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
+  list(APPEND sources src/communication_abstractions/apex_os_polling_subscription_communicator.hpp)
 endif()
 
 if(PERFORMANCE_TEST_FASTRTPS_ENABLED)
@@ -332,6 +362,13 @@ externalproject_add(
   GIT_SHALLOW TRUE
   PREFIX ${EXTERNAL_INSTALL_LOCATION}
   SOURCE_DIR ${EXTERNAL_INSTALL_LOCATION}/tabulate
+  PATCH_COMMAND sed -i "39d" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/column.hpp"
+        COMMAND sed -i "88 a #endif" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
+        COMMAND sed -i "77 a #if !defined(QNX)" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
+        COMMAND sed -i "75 a #endif" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
+        COMMAND sed -i "74 a #if !defined(QNX)" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
+        COMMAND sed -i "71 a #endif" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
+        COMMAND sed -i "47 a #if !defined(QNX)" "${EXTERNAL_INSTALL_LOCATION}/tabulate/include/tabulate/utf8.hpp"
   CMAKE_COMMAND ""
   CONFIGURE_COMMAND ""
   UPDATE_COMMAND ""
@@ -347,7 +384,9 @@ externalproject_add(
   GIT_SHALLOW TRUE
   PREFIX ${EXTERNAL_INSTALL_LOCATION}
   SOURCE_DIR ${EXTERNAL_INSTALL_LOCATION}/sole
-  PATCH_COMMAND patch ${EXTERNAL_INSTALL_LOCATION}/sole/sole.hpp ${CMAKE_CURRENT_SOURCE_DIR}/external_patches/sole.hpp.patch
+  PATCH_COMMAND patch
+        ${EXTERNAL_INSTALL_LOCATION}/sole/sole.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/external_patches/sole.hpp.patch
   CMAKE_COMMAND ""
   CONFIGURE_COMMAND ""
   UPDATE_COMMAND ""
@@ -357,7 +396,7 @@ externalproject_add(
 include_directories(SYSTEM ${EXTERNAL_INSTALL_LOCATION})
 
 set(EXE_NAME perf_test)
-add_executable(${EXE_NAME} ${${PROJECT_NAME}_SOURCES} ${sources} ${${PROJECT_NAME}_HEADERS})
+add_executable(${EXE_NAME} ${sources})
 add_dependencies(${EXE_NAME} tclap rapidjson tabulate sole)
 
 
@@ -373,7 +412,10 @@ execute_process(
 add_definitions(-DPERFORMANCE_TEST_VERSION="${PERF_TEST_VERSION}")
 
 if(PERFORMANCE_TEST_RCLCPP_ENABLED)
-  if($ENV{ROS_DISTRO} MATCHES "galactic")
+  if($ENV{ROS_DISTRO} MATCHES "humble")
+    rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
+    target_link_libraries(${EXE_NAME} "${cpp_typesupport_target}")
+  elseif($ENV{ROS_DISTRO} MATCHES "galactic")
     rosidl_target_interfaces(${EXE_NAME} ${PROJECT_NAME} "rosidl_typesupport_cpp")
   elseif($ENV{ROS_DISTRO} MATCHES "foxy")
     rosidl_target_interfaces(${EXE_NAME} ${PROJECT_NAME} "rosidl_typesupport_cpp")
@@ -390,6 +432,16 @@ if(PERFORMANCE_TEST_RCLCPP_ENABLED)
   ament_target_dependencies(${EXE_NAME} "rclcpp")
 endif()
 
+if(PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
+  if(APEX_CERT)
+    set(TYPESUPPORT_INTERFACE rosidl_typesupport_apex_middleware_cpp)
+  else()
+    set(TYPESUPPORT_INTERFACE rosidl_typesupport_cpp)
+  endif()
+  rosidl_target_interfaces(${EXE_NAME} ${PROJECT_NAME} ${TYPESUPPORT_INTERFACE})
+  ament_target_dependencies(${EXE_NAME} "rclcpp")
+endif()
+
 ament_target_dependencies(${EXE_NAME} ${OPTIONAL_AMENT_DEPENDENCES})
 
 target_link_libraries(
@@ -401,10 +453,24 @@ target_link_libraries(
 )
 
 if(BUILD_TESTING)
-    find_package(ament_lint_auto REQUIRED)
-    ament_lint_auto_find_test_dependencies()
-    list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_copyright)
-    ament_copyright(${${PROJECT_NAME}_SOURCES} ${sources} ${${PROJECT_NAME}_HEADERS})
+    find_package(ament_cmake_copyright REQUIRED)
+    ament_copyright()
+
+    find_package(ament_cmake_cppcheck REQUIRED)
+    ament_cppcheck(
+        ${sources})
+
+    find_package(ament_cmake_cpplint REQUIRED)
+    ament_cpplint(
+        FILTERS "-build/include_order")
+
+    find_package(ament_cmake_uncrustify REQUIRED)
+    ament_uncrustify(
+        CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../ament_code_style.cfg"
+        ${sources})
+
+    find_package(ament_cmake_lint_cmake REQUIRED)
+    ament_lint_cmake()
 
     set(APEX_PERFORMANCE_TEST_GTEST apex_performance_test_gtest)
 
