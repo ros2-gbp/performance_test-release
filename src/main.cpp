@@ -1,4 +1,4 @@
-// Copyright 2017 Apex.AI, Inc.
+// Copyright 2017-2024 Apex.AI, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,31 +12,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef PERFORMANCE_TEST_RCLCPP_ENABLED
-#include <rclcpp/rclcpp.hpp>
-#endif
+#include <iostream>
 
-#include "data_running/data_entity.hpp"
-#include "experiment_configuration/experiment_configuration.hpp"
-#include "experiment_execution/runner.hpp"
+#include "performance_test/cli/cli_parser.hpp"
+#include "performance_test/experiment_execution/pub_sub_factory.hpp"
+#include "performance_test/experiment_execution/runner_factory.hpp"
+#include "performance_test/plugin/plugin_singleton.hpp"
+#include "performance_test/utilities/exit_request_handler.hpp"
+#include "performance_test/utilities/prevent_cpu_idle.hpp"
+#include "performance_test/utilities/rt_enabler.hpp"
+
+namespace pt = ::performance_test;
 
 int main(int argc, char ** argv)
 {
-  // parse arguments and set up experiment configuration
-  auto & ec = performance_test::ExperimentConfiguration::get();
-  ec.setup(argc, argv);
+  pt::PluginSingleton::get()->register_pub_sub(pt::PubSubFactory::get());
+  pt::PluginSingleton::get()->register_custom_runners(pt::RunnerFactory::get());
 
-#if defined(PERFORMANCE_TEST_RCLCPP_ENABLED)
-  // initialize ros
-  if (ec.use_ros2_layers()) {
-#ifdef APEX_CERT
-    rclcpp::init(argc, argv, rclcpp::InitOptions{}, false);
-#else
-    rclcpp::init(argc, argv);
-#endif
+  pt::CLIParser parser(argc, argv);
+
+  auto ec = parser.experiment_configuration;
+
+  if (ec.rt_config.is_rt_init_required()) {
+    pt::pre_proc_rt_init(ec.rt_config.cpus, ec.rt_config.prio);
   }
-#endif
 
-  performance_test::Runner<performance_test::DataEntity> r(ec);
-  r.run();
+  if (ec.prevent_cpu_idle) {
+    pt::prevent_cpu_idle();
+  }
+
+  pt::PluginSingleton::get()->global_setup(ec);
+
+  pt::ExitRequestHandler::get().setup();
+
+  auto r = pt::RunnerFactory::get().create_runner(ec);
+
+  if (ec.rt_config.is_rt_init_required()) {
+    pt::post_proc_rt_init();
+  }
+
+  r->run();
+
+  pt::PluginSingleton::get()->global_teardown(ec);
 }

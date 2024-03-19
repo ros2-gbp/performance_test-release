@@ -1,4 +1,4 @@
-# Copyright 2017 Apex.AI, Inc.
+# Copyright 2017-2022 Apex.AI, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,6 @@ function(set_compile_options target)
                     -Wlogical-op
                     #-Wuseless-cast
                     $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,6>:
-                        -Wnull-dereference
                         -Wduplicated-cond
                     >
                     $<$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,7>:
