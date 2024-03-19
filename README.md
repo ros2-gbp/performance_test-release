@@ -1,3 +1,29 @@
+## performance_test (rolling) - 2.0.0-1
+
+The packages in the `performance_test` repository were released into the `rolling` distro by running `/usr/bin/bloom-release --track rolling --rosdistro rolling performance_test` on `Tue, 19 Mar 2024 21:26:43 -0000`
+
+The `performance_test` package was released.
+
+These packages were explicitly ignored:
+- `performance_report`
+
+Version of package(s) in repository `performance_test`:
+
+- upstream repository: https://gitlab.com/ApexAI/performance_test.git
+- release repository: https://github.com/ros2-gbp/performance_test-release.git
+- rosdistro version: `1.2.1-4`
+- old version: `1.2.1-4`
+- new version: `2.0.0-1`
+
+Versions of tools used:
+
+- bloom version: `0.11.2`
+- catkin_pkg version: `1.0.0`
+- rosdep version: `0.22.2`
+- rosdistro version: `0.9.0`
+- vcstools version: `0.1.42`
+
+
 ## performance_test (foxy) - 1.2.1-1
 
 The packages in the `performance_test` repository were released into the `foxy` distro by running `/usr/bin/bloom-release --rosdistro foxy --track foxy performance_test` on `Thu, 30 Jun 2022 21:59:57 -0000`
