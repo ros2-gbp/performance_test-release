@@ -93,7 +93,7 @@ tracks:
     name: upstream
     patches: null
     release_inc: '1'
-    release_repo_url: git@github.com:ros2-gbp/performance_test-release.git
+    release_repo_url: null
     release_tag: :{version}
     ros_distro: humble
     vcs_type: git
@@ -145,7 +145,7 @@ tracks:
     name: upstream
     patches: null
     release_inc: '4'
-    release_repo_url: git@github.com:ros2-gbp/performance_test-release.git
+    release_repo_url: null
     release_tag: :{version}
     ros_distro: rolling
     vcs_type: git
