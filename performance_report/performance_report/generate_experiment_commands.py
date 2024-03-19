@@ -13,20 +13,21 @@
 # limitations under the License.
 
 import os
+
+from performance_report.logs import getExperiments
+from performance_report.utils import PerfArgParser
+
 import yaml
 
-from .logs import getExperiments
-from .utils import PerfArgParser
 
-
-def generate_commands(files: "list[str]", perf_test_exe_cmd, output_dir):
+def generate_commands(files: 'list[str]', perf_test_exe_cmd, output_dir):
     commands = []
     commands.append(f'mkdir -p {output_dir}')
     for run_file in files:
-        with open(run_file, "r") as f:
+        with open(run_file, 'r') as f:
             run_cfg = yaml.load(f, Loader=yaml.FullLoader)
 
-        run_configs = getExperiments(run_cfg["experiments"])
+        run_configs = getExperiments(run_cfg['experiments'])
 
         for run_config in run_configs:
             commands += run_config.cli_commands(perf_test_exe_cmd, output_dir)
@@ -38,10 +39,10 @@ def main():
     parser.init_args()
     args = parser.parse_args()
 
-    log_dir = getattr(args, "log_dir")
-    test_name = getattr(args, "test_name")
-    run_files = getattr(args, "configs")
-    perf_test_exe_cmd = getattr(args, "perf_test_exe")
+    log_dir = getattr(args, 'log_dir')
+    test_name = getattr(args, 'test_name')
+    run_files = getattr(args, 'configs')
+    perf_test_exe_cmd = getattr(args, 'perf_test_exe')
 
     log_dir = os.path.join(log_dir, test_name)
     commands = generate_commands(run_files, perf_test_exe_cmd, log_dir)
@@ -49,5 +50,5 @@ def main():
 
 
 # if this file is called directly
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

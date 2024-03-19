@@ -13,7 +13,6 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends \
   libtinyxml2-dev \
   ros-rolling-osrf-testing-tools-cpp \
-  ros-rolling-ament-cmake-nose \
   ros-rolling-launch-testing
 
 # Convert all absolute symbolic links to relative so that they can be found when copied to the sysroot

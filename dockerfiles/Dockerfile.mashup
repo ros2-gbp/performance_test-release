@@ -17,15 +17,21 @@ RUN source /opt/ros/rolling/setup.bash && \
       --cmake-clean-cache \
       --cmake-args \
         -DCMAKE_BUILD_TYPE=Release \
-        -DPERFORMANCE_TEST_CYCLONEDDS_ENABLED=ON \
-        -DPERFORMANCE_TEST_RCLCPP_ENABLED=OFF
+        -DPERFORMANCE_TEST_PLUGIN=CYCLONEDDS
 
 ADD dockerfiles/cyclonedds.xml /
 ENV CYCLONEDDS_URI=/cyclonedds.xml
 
-RUN echo "source /opt/ros/rolling/setup.bash" >> /root/.bashrc
-RUN echo "source /opt/cyclonedds/setup.bash" >> /root/.bashrc
-RUN echo 'source /opt/performance_test/setup.bash' >> /root/.bashrc
+RUN echo "source /opt/ros/rolling/setup.bash" >> /root/setup.bash
+RUN echo "source /opt/cyclonedds/setup.bash" >> /root/setup.bash
+RUN echo 'source /opt/performance_test/setup.bash' >> /root/setup.bash
 
 ADD dockerfiles/roudi_config.toml /etc/iceoryx/roudi_config.toml
-RUN echo "iox-roudi -c /etc/iceoryx/roudi_config.toml &" >> /root/.bashrc
+RUN echo "iox-roudi -c /etc/iceoryx/roudi_config.toml &" >> /root/setup.bash
+
+RUN echo "source /root/setup.bash" >> /root/.bashrc
+
+# Install dependencies for running performance_report
+RUN apt-get update && \
+    apt-get install -y python3-pip && \
+    python3 -m pip install -U bokeh selenium pandas 

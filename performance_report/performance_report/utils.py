@@ -11,28 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import argparse
 import os
 import sys
+
 import pandas as pd
+
+from performance_report.qos import DURABILITY, HISTORY, RELIABILITY
+
 import yaml
-import xml.etree.ElementTree as et
-
-from .qos import DURABILITY, HISTORY, RELIABILITY
-from .transport import TRANSPORT
-
-try:
-    from rclpy.utilities import get_rmw_implementation_identifier
-except ImportError:
-    print('WARNING: rclpy could not be found. Running with shared memory is unavailable.')
 
 
 class ExperimentConfig:
     def __init__(
         self,
-        com_mean: str = "rclcpp-single-threaded-executor",
-        transport: TRANSPORT = TRANSPORT.INTRA,
-        msg: str = "Array1k",
+        com_mean: str = 'rclcpp-single-threaded-executor',
+        process_configuration: str = 'INTRA_PROCESS',
+        execution_strategy: str = 'INTER_THREAD',
+        sample_transport: str = 'BY_COPY',
+        msg: str = 'Array1k',
         pubs: int = 1,
         subs: int = 1,
         rate: int = 100,
@@ -42,11 +40,14 @@ class ExperimentConfig:
         history_depth: int = 16,
         rt_prio: int = 0,
         rt_cpus: int = 0,
+        prevent_cpu_idle: bool = False,
         max_runtime: int = 30,
         ignore_seconds: int = 5,
     ) -> None:
         self.com_mean = str(com_mean)
-        self.transport = TRANSPORT(transport)
+        self.process_configuration = str(process_configuration)
+        self.execution_strategy = str(execution_strategy)
+        self.sample_transport = str(sample_transport)
         self.msg = str(msg)
         self.pubs = int(pubs)
         self.subs = int(subs)
@@ -57,13 +58,16 @@ class ExperimentConfig:
         self.history_depth = int(history_depth)
         self.rt_prio = rt_prio
         self.rt_cpus = rt_cpus
+        self.prevent_cpu_idle = prevent_cpu_idle
         self.max_runtime = max_runtime
         self.ignore_seconds = ignore_seconds
 
     def __eq__(self, o: object) -> bool:
         same = True
         same = same and self.com_mean == o.com_mean
-        same = same and self.transport == o.transport
+        same = same and self.process_configuration == o.process_configuration
+        same = same and self.execution_strategy == o.execution_strategy
+        same = same and self.sample_transport == o.sample_transport
         same = same and self.msg == o.msg
         same = same and self.pubs == o.pubs
         same = same and self.subs == o.subs
@@ -74,12 +78,13 @@ class ExperimentConfig:
         same = same and self.history_depth == o.history_depth
         same = same and self.rt_prio == o.rt_prio
         same = same and self.rt_cpus == o.rt_cpus
+        same = same and self.prevent_cpu_idle == o.prevent_cpu_idle
         same = same and self.max_runtime == o.max_runtime
         same = same and self.ignore_seconds == o.ignore_seconds
         return same
 
     def log_file_name(self) -> str:
-        if self.transport == TRANSPORT.INTRA:
+        if self.process_configuration == 'INTRA_PROCESS':
             return self.log_file_name_intra()
         else:
             return self.log_file_name_sub()
@@ -87,7 +92,9 @@ class ExperimentConfig:
     def write_log_file_name(self, com_mean_suffix: str) -> str:
         params = [
             self.com_mean,
-            str(self.transport) + com_mean_suffix,
+            str(self.process_configuration) + com_mean_suffix,
+            self.execution_strategy,
+            self.sample_transport,
             self.msg,
             self.pubs,
             self.subs,
@@ -98,9 +105,10 @@ class ExperimentConfig:
             self.history_depth,
             self.rt_prio,
             self.rt_cpus,
+            self.prevent_cpu_idle,
         ]
         str_params = map(str, params)
-        return "_".join(str_params) + ".json"
+        return '_'.join(str_params) + '.json'
 
     def log_file_name_intra(self) -> str:
         return self.write_log_file_name(com_mean_suffix='')
@@ -114,7 +122,9 @@ class ExperimentConfig:
     def as_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame({
             'com_mean': self.com_mean,
-            'transport': self.transport,
+            'process_configuration': self.process_configuration,
+            'execution_strategy': self.execution_strategy,
+            'sample_transport': self.sample_transport,
             'msg': self.msg,
             'pubs': self.pubs,
             'subs': self.subs,
@@ -125,6 +135,7 @@ class ExperimentConfig:
             'history_depth': self.history_depth,
             'rt_prio': self.rt_prio,
             'rt_cpus': self.rt_cpus,
+            'prevent_cpu_idle': self.prevent_cpu_idle,
             'max_runtime': self.max_runtime,
             'ignore_seconds': self.ignore_seconds,
         }, index=[0])
@@ -141,69 +152,79 @@ class ExperimentConfig:
         args = self.cli_args(output_dir)
         commands = []
         cleanup_commands = []
-        if len(args) == 1:
-            commands.append(perf_test_exe_cmd + args[0])
-        elif len(args) == 2:
-            if self.transport == TRANSPORT.ZERO_COPY or self.transport == TRANSPORT.SHMEM:
-                if is_ros2_plugin(self.com_mean):
-                    if get_rmw_implementation_identifier() == "rmw_apex_middleware":
-                        commands.extend(generate_commands_yml(output_dir))
-                        cleanup_commands.append('unset APEX_MIDDLEWARE_SETTINGS')
-                    elif get_rmw_implementation_identifier() == "rmw_cyclonedds_cpp":
+
+        if self.sample_transport == 'SHARED_MEMORY' or self.sample_transport == 'LOANED_SAMPLES':
+            if is_ros2_plugin(self.com_mean):
+                try:
+                    from rclpy.utilities import get_rmw_implementation_identifier
+                    if get_rmw_implementation_identifier() == 'rmw_cyclonedds_cpp':
                         commands.extend(generate_commands_xml(output_dir))
                         cleanup_commands.append('unset CYCLONEDDS_URI')
                     else:
-                        print("Unsupported Middleware: ", get_rmw_implementation_identifier())
-                elif self.com_mean == "CycloneDDS" or self.com_mean == "CycloneDDS-CXX":
-                    commands.extend(generate_commands_xml(output_dir))
-                    cleanup_commands.append('unset CYCLONEDDS_URI')
-                else:
-                    print("Unsupported com_mean: ", self.com_mean)
+                        print('Unsupported Middleware: ', get_rmw_implementation_identifier())
+                except ImportError:
+                    print('WARNING: rclpy not found. Running with shared memory is unavailable.')
+            elif self.com_mean == 'ApexOSPollingSubscription':
+                commands.extend(generate_commands_yml(output_dir))
+                cleanup_commands.append('unset APEX_MIDDLEWARE_SETTINGS')
+            elif self.com_mean == 'CycloneDDS' or self.com_mean == 'CycloneDDS-CXX':
+                commands.extend(generate_commands_xml(output_dir))
+                cleanup_commands.append('unset CYCLONEDDS_URI')
+            elif self.com_mean == 'iceoryx':
+                pass
+            else:
+                pass
 
+        if len(args) == 1:
+            commands.append(perf_test_exe_cmd + args[0])
+        elif len(args) == 2:
             sub_args, pub_args = args
             commands.append(perf_test_exe_cmd + sub_args + ' &')
             commands.append('sleep 1')
             commands.append(perf_test_exe_cmd + pub_args)
             commands.append('sleep 5')
-            commands.extend(cleanup_commands)
         else:
             raise RuntimeError('Unreachable code')
+
+        commands.extend(cleanup_commands)
         return commands
 
     def cli_args(self, output_dir) -> list:
-        args = ""
-        args += f" -c {self.com_mean}"
-        args += f" -m {self.msg}"
-        args += f" -r {self.rate}"
+        args = ''
+        args += f' -c {self.com_mean}'
+        args += f' -e {self.execution_strategy}'
+        if self.sample_transport == 'LOANED_SAMPLES':
+            args += ' --zero-copy'
+        args += f' -m {self.msg}'
+        args += f' -r {self.rate}'
         if self.reliability == RELIABILITY.RELIABLE:
-            args += " --reliability RELIABLE"
+            args += ' --reliability RELIABLE'
         else:
-            args += " --reliability BEST_EFFORT"
+            args += ' --reliability BEST_EFFORT'
         if self.durability == DURABILITY.TRANSIENT_LOCAL:
-            args += " --durability TRANSIENT_LOCAL"
+            args += ' --durability TRANSIENT_LOCAL'
         else:
-            args += " --durability VOLATILE"
+            args += ' --durability VOLATILE'
         if self.history == HISTORY.KEEP_LAST:
-            args += " --history KEEP_LAST"
+            args += ' --history KEEP_LAST'
         else:
-            args += " --history KEEP_ALL"
-        args += f" --history-depth {self.history_depth}"
-        args += f" --use-rt-prio {self.rt_prio}"
-        args += f" --use-rt-cpus {self.rt_cpus}"
-        args += f" --max-runtime {self.max_runtime}"
-        args += f" --ignore {self.ignore_seconds}"
-        if self.transport == TRANSPORT.INTRA:
-            args += f" -p {self.pubs} -s {self.subs}"
-            args += f" --logfile {os.path.join(output_dir, self.log_file_name_intra())}"
+            args += ' --history KEEP_ALL'
+        args += f' --history-depth {self.history_depth}'
+        args += f' --use-rt-prio {self.rt_prio}'
+        args += f' --use-rt-cpus {self.rt_cpus}'
+        if self.prevent_cpu_idle:
+            args += ' --prevent-cpu-idle'
+        args += f' --max-runtime {self.max_runtime}'
+        args += f' --ignore {self.ignore_seconds}'
+        if self.process_configuration == 'INTRA_PROCESS':
+            args += f' -p {self.pubs} -s {self.subs}'
+            args += f' --logfile {os.path.join(output_dir, self.log_file_name_intra())}'
             return [args]
         else:
-            args_sub = args + f" -p 0 -s {self.subs} --expected-num-pubs {self.pubs}"
-            args_sub += f" --logfile {os.path.join(output_dir, self.log_file_name_sub())}"
-            args_pub = args + f" -s 0 -p {self.pubs} --expected-num-subs {self.subs}"
-            args_pub += f" --logfile {os.path.join(output_dir, self.log_file_name_pub())}"
-            if self.transport == TRANSPORT.ZERO_COPY:
-                args_sub += " --zero-copy"
-                args_pub += " --zero-copy"
+            args_sub = args + f' -p 0 -s {self.subs} --expected-num-pubs {self.pubs}'
+            args_sub += f' --logfile {os.path.join(output_dir, self.log_file_name_sub())}'
+            args_pub = args + f' -s 0 -p {self.pubs} --expected-num-subs {self.subs}'
+            args_pub += f' --logfile {os.path.join(output_dir, self.log_file_name_pub())}'
             return [args_sub, args_pub]
 
 
@@ -280,34 +301,34 @@ class PerfArgParser(argparse.ArgumentParser):
 
     def init_args(self):
         self.add_argument(
-            "--log-dir",
-            "-l",
+            '--log-dir',
+            '-l',
             default='.',
-            help="The directory for the perf_test log files and plot images",
+            help='The directory for the perf_test log files and plot images',
         )
         self.add_argument(
-            "--test-name",
-            "-t",
+            '--test-name',
+            '-t',
             default=DEFAULT_TEST_NAME,
-            help="Name of the experiment set to help give context to the test results",
+            help='Name of the experiment set to help give context to the test results',
         )
         self.add_argument(
-            "--configs",
-            "-c",
+            '--configs',
+            '-c',
             default=[],
-            nargs="+",
-            help="The configuration yaml file(s)",
+            nargs='+',
+            help='The configuration yaml file(s)',
         )
         self.add_argument(
-            "--perf-test-exe",
+            '--perf-test-exe',
             default='ros2 run performance_test perf_test',
-            help="The command to run the perf_test executable",
+            help='The command to run the perf_test executable',
         )
         self.add_argument(
-            "--force",
-            "-f",
-            action="store_true",
-            help="Force existing results to be overwritten (by default, they are skipped).",
+            '--force',
+            '-f',
+            action='store_true',
+            help='Force existing results to be overwritten (by default, they are skipped).',
         )
 
         if len(sys.argv) == 1:
@@ -323,7 +344,7 @@ class PerfArgParser(argparse.ArgumentParser):
         self.print_help()
         sys.exit(2)
 
-    def exit(self, status=0, message=None):
+    def exit(self, status=0, message=None):  # noqa: A003
         if status:
             raise Exception(f'Exiting because of an error: {message}')
         self.print_help()
@@ -358,45 +379,44 @@ def create_dir(dir_path) -> bool:
 
 
 def generate_shmem_file_yml(dir_path) -> str:
-    shmem_config_file = os.path.join(dir_path, "shmem.yml")
+    shmem_config_file = os.path.join(dir_path, 'shmem.yml')
     if not os.path.exists(shmem_config_file):
-        with open(shmem_config_file, "w") as outfile:
-            shmem_dict = dict(domain=dict(shared_memory=dict(enable=True)))
+        with open(shmem_config_file, 'w') as outfile:
+            shmem_dict = dict(domain=dict(shared_memory=dict(enable=True)))  # noqa: C408
             yaml.safe_dump(shmem_dict, outfile)
     return shmem_config_file
 
 
 def generate_shmem_file_xml(dir_path) -> str:
-    shmem_config_file = os.path.join(dir_path, "shmem.xml")
+    shmem_config_file = os.path.join(dir_path, 'shmem.xml')
     if not os.path.exists(shmem_config_file):
-        root = et.Element("CycloneDDS")
-        root.set("xmlns", "https://cdds.io/config")
-        root.set("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
-        root.set("xsi:schemaLocation", "https://cdds.io/config "
-                 "https://raw.githubusercontent.com/eclipse-cyclonedds"
-                 "/cyclonedds/iceoryx/etc/cyclonedds.xsd")
-        domain = et.SubElement(root, "Domain")
-        sharedMemory = et.SubElement(domain, "SharedMemory")
-        et.SubElement(sharedMemory, "Enable").text = "true"
-        et.SubElement(sharedMemory, "LogLevel").text = "info"
-        tree = et.ElementTree(root)
+        root = et.Element('CycloneDDS')  # noqa: F821
+        root.set('xmlns', 'https://cdds.io/config')
+        root.set('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance')
+        root.set('xsi:schemaLocation', 'https://cdds.io/config '
+                 'https://raw.githubusercontent.com/eclipse-cyclonedds'
+                 '/cyclonedds/iceoryx/etc/cyclonedds.xsd')
+        domain = et.SubElement(root, 'Domain')  # noqa: F821
+        sharedMemory = et.SubElement(domain, 'SharedMemory')  # noqa: F821
+        et.SubElement(sharedMemory, 'Enable').text = 'true'  # noqa: F821
+        et.SubElement(sharedMemory, 'LogLevel').text = 'info'  # noqa: F821
+        tree = et.ElementTree(root)  # noqa: F821
         tree._setroot(root)
-        tree.write(shmem_config_file, encoding="UTF-8", xml_declaration=True)
+        tree.write(shmem_config_file, encoding='UTF-8', xml_declaration=True)
     return shmem_config_file
 
 
 def is_ros2_plugin(com_mean) -> bool:
-    if (com_mean == "ApexOSPollingSubscription" or
-            com_mean == "rclcpp-single-threaded-executor" or
-            com_mean == "rclcpp-static-single-threaded-executor" or
-            com_mean == "rclcpp-waitset"):
+    if (com_mean == 'rclcpp-single-threaded-executor' or
+            com_mean == 'rclcpp-static-single-threaded-executor' or
+            com_mean == 'rclcpp-waitset'):
         return True
     else:
         return False
 
 
 def generate_commands_yml(output_dir) -> list:
-    shmem_config_file = os.path.join(output_dir, "shmem.yml")
+    shmem_config_file = os.path.join(output_dir, 'shmem.yml')
     commands = []
     commands.append(f'export APEX_MIDDLEWARE_SETTINGS="{shmem_config_file}"')
     commands.append('cat > ${APEX_MIDDLEWARE_SETTINGS} << EOF')
@@ -408,7 +428,7 @@ def generate_commands_yml(output_dir) -> list:
 
 
 def generate_commands_xml(output_dir) -> list:
-    shmem_config_file = os.path.join(output_dir, "shmem.xml")
+    shmem_config_file = os.path.join(output_dir, 'shmem.xml')
     commands = []
     commands.append(f'export CYCLONEDDS_URI="{shmem_config_file}"')
     commands.append('cat > ${CYCLONEDDS_URI} << EOF')

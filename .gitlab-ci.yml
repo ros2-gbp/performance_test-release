@@ -5,6 +5,9 @@ stages:
   - test
   - deploy
 
+variables:
+  ICEORYX_VERSION: 5fe215eab267b0ad68bc5552aecd4b6e728e4c99
+
 Draft MR:
   stage: bootstrap
   rules:
@@ -18,6 +21,8 @@ workflow:
   rules:
     - if: $CI_MERGE_REQUEST_ID != null && $CI_MERGE_REQUEST_TITLE !~ /^Draft:/
       when: always
+    - if: '$CI_COMMIT_REF_NAME =~ /^master.*$/'
+      when: always
 
 build_cyclonedds_library:
   rules:
@@ -29,11 +34,11 @@ build_cyclonedds_library:
   script:
     - source /opt/ros/rolling/setup.bash
     - apt-get update
-   
+
     - '
-      curl "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-v2.0.0.tar.gz" > opt-iceoryx-v2.0.0.tar.gz
+      curl "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-${ICEORYX_VERSION}.tar.gz" > opt-iceoryx-${ICEORYX_VERSION}.tar.gz
       '
-    - tar -xzf opt-iceoryx-v2.0.0.tar.gz -C /
+    - tar -xzf opt-iceoryx-${ICEORYX_VERSION}.tar.gz -C /
     - source /opt/iceoryx/setup.bash
 
     - git clone https://github.com/eclipse-cyclonedds/cyclonedds.git -b 0.9.0b1 --depth 1
@@ -43,10 +48,10 @@ build_cyclonedds_library:
     - cmake -DCMAKE_INSTALL_PREFIX=/opt/cyclonedds -DENABLE_SECURITY=ON -DENABLE_SHM=ON ..
     - cmake --build .
     - cmake --build . --target install
-    
+
     - tar cfz opt-cyclonedds-v0.9.0b1.tar.gz /opt/cyclonedds
     - '
-      curl 
+      curl
           --header "JOB-TOKEN: ${CI_JOB_TOKEN}"
           --upload-file opt-cyclonedds-v0.9.0b1.tar.gz
 "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-cyclonedds-v0.9.0b1.tar.gz"
@@ -69,15 +74,15 @@ build_cyclonedds_cxx_libary:
     - apt-get update
 
     - '
-      curl "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-v2.0.0.tar.gz" > opt-iceoryx-v2.0.0.tar.gz
+      curl "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-${ICEORYX_VERSION}.tar.gz" > opt-iceoryx-${ICEORYX_VERSION}.tar.gz
       '
-    - tar -xzf opt-iceoryx-v2.0.0.tar.gz -C /
+    - tar -xzf opt-iceoryx-${ICEORYX_VERSION}.tar.gz -C /
     - source /opt/iceoryx/setup.bash
 
     - 'curl "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-cyclonedds-v0.9.0b1.tar.gz" > opt-cyclonedds-v0.9.0b1.tar.gz
       '
     - tar -xzf opt-cyclonedds-v0.9.0b1.tar.gz -C /
-    
+
     - git clone https://github.com/eclipse-cyclonedds/cyclonedds-cxx.git -b 0.9.0b1 --depth 1
     - cd cyclonedds-cxx
     - mkdir -p build
@@ -92,7 +97,7 @@ build_cyclonedds_cxx_libary:
     - cmake --build . --target install
     - tar cfz opt-cyclonedds-cxx-v0.9.0b1.tar.gz /opt/cyclonedds-cxx
     - '
-      curl 
+      curl
           --header "JOB-TOKEN: ${CI_JOB_TOKEN}"
           --upload-file opt-cyclonedds-cxx-v0.9.0b1.tar.gz
 "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-cyclonedds-cxx-v0.9.0b1.tar.gz"
@@ -117,7 +122,10 @@ build_iceoryx_library:
 
     - mkdir -p /iceoryx_ws/src
     - cd /iceoryx_ws/src/
-    - git clone https://github.com/eclipse-iceoryx/iceoryx.git -b v2.0.0 --depth 1
+    - git clone https://github.com/eclipse-iceoryx/iceoryx.git
+    - cd iceoryx
+    - git checkout ${ICEORYX_VERSION}
+    - cd ..
     - rosdep install --from-paths iceoryx --ignore-src -y
     - cd /iceoryx_ws
     - '
@@ -129,18 +137,18 @@ build_iceoryx_library:
             -DIOX_MAX_CHUNKS_HELD_PER_SUBSCRIBER_SIMULTANEOUSLY=1000
       '
     - source /opt/iceoryx/setup.bash
-    - tar cfz opt-iceoryx-v2.0.0.tar.gz /opt/iceoryx
+    - tar cfz opt-iceoryx-${ICEORYX_VERSION}.tar.gz /opt/iceoryx
     - '
-      curl 
+      curl
           --header "JOB-TOKEN: ${CI_JOB_TOKEN}"
-          --upload-file opt-iceoryx-v2.0.0.tar.gz
-"https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-v2.0.0.tar.gz"
+          --upload-file opt-iceoryx-${ICEORYX_VERSION}.tar.gz
+"https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-${ICEORYX_VERSION}.tar.gz"
       '
   artifacts:
     expire_in: 1 day
     when: always
     paths:
-      - opt-iceoryx-v2.0.0.tar.gz
+      - opt-iceoryx-${ICEORYX_VERSION}.tar.gz
 
 build_opendds_library:
   rules:
@@ -163,7 +171,7 @@ build_opendds_library:
 
     - tar cfz opt-opendds-3.13.2.tar.gz /opt/opendds
     - '
-      curl 
+      curl
           --header "JOB-TOKEN: ${CI_JOB_TOKEN}"
           --upload-file opt-opendds-3.13.2.tar.gz
 "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-opendds-3.13.2.tar.gz"
@@ -211,7 +219,7 @@ build_fastrtps_library:
     - cmake --build . --target install
     - tar cfz opt-fastdds-v1.2.1.tar.gz /opt/Fast-DDS
     - '
-      curl 
+      curl
           --header "JOB-TOKEN: ${CI_JOB_TOKEN}"
           --upload-file opt-fastdds-v1.2.1.tar.gz
 "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-fastdds-v1.2.1.tar.gz"
@@ -222,11 +230,17 @@ build_fastrtps_library:
     paths:
       - opt-fastdds-v1.2.1.tar.gz
 
+.build_with_only_array_msgs:
+  variables:
+    CMAKE_ARGS_ENABLE_MSGS: '-DENABLE_MSGS_STRUCT=OFF -DENABLE_MSGS_POINT_CLOUD=OFF'
+
 build_cross_image:
   stage: build
   image: docker
   services:
     - docker:dind
+  extends:
+    - .build_with_only_array_msgs
   script:
     - '
       docker build
@@ -242,12 +256,14 @@ build_cross_image:
           sh -c "colcon build --merge-install --cmake-args
               -DCMAKE_TOOLCHAIN_FILE=`pwd`/tools/toolchain.cmake
               -DBUILD_TESTING=OFF
-              -DPERFORMANCE_TEST_MINIMAL_MESSAGES=ON"
+              ${CMAKE_ARGS_ENABLE_MSGS}"
       '
 
 .build_rclcpp:
   stage: build
   image: osrf/ros:rolling-desktop
+  extends:
+    - .build_with_only_array_msgs
   script:
     - '
       colcon build
@@ -255,7 +271,7 @@ build_cross_image:
           --merge-install
           --cmake-args
             -DCMAKE_BUILD_TYPE=Release
-            -DPERFORMANCE_TEST_MINIMAL_MESSAGES=ON
+            ${CMAKE_ARGS_ENABLE_MSGS}
       '
     - cp LICENSE /opt/performance_test
     - tar cfz opt.tar.gz /opt/performance_test
@@ -276,7 +292,7 @@ build_rclcpp_humble:
 build_rclcpp_rolling:
   extends:
     - .build_rclcpp
-    
+
 build_rclcpp_galactic:
   extends:
     - .build_rclcpp
@@ -300,6 +316,8 @@ build_rclcpp_dashing:
 build_cyclonedds:
   stage: build
   image: osrf/ros:rolling-desktop
+  extends:
+    - .build_with_only_array_msgs
   script:
     - source /opt/ros/rolling/setup.bash
     - apt-get update
@@ -308,9 +326,9 @@ build_cyclonedds:
     - rosdep install --from-paths performance_test --ignore-src -y
 
     - '
-      curl "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-v2.0.0.tar.gz" > opt-iceoryx-v2.0.0.tar.gz
+      curl "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-${ICEORYX_VERSION}.tar.gz" > opt-iceoryx-${ICEORYX_VERSION}.tar.gz
       '
-    - tar -xzf opt-iceoryx-v2.0.0.tar.gz -C /
+    - tar -xzf opt-iceoryx-${ICEORYX_VERSION}.tar.gz -C /
     - find /opt/iceoryx/
     - source /opt/iceoryx/setup.bash
 
@@ -327,11 +345,11 @@ build_cyclonedds:
           --merge-install
           --cmake-args
             -DCMAKE_BUILD_TYPE=Release
-            -DPERFORMANCE_TEST_CYCLONEDDS_ENABLED=ON
-            -DPERFORMANCE_TEST_RCLCPP_ENABLED=OFF
+            -DPERFORMANCE_TEST_PLUGIN=CYCLONEDDS
+            ${CMAKE_ARGS_ENABLE_MSGS}
           --base-path performance_test
       '
-    
+
     - cp LICENSE /opt/performance_test
     - tar cfz opt.tar.gz /opt/performance_test
   artifacts:
@@ -345,6 +363,8 @@ build_cyclonedds:
 build_cyclonedds_cxx:
   stage: build
   image: osrf/ros:rolling-desktop
+  extends:
+    - .build_with_only_array_msgs
   script:
     - source /opt/ros/rolling/setup.bash
     - apt-get update
@@ -353,9 +373,9 @@ build_cyclonedds_cxx:
     - rosdep install --from-paths performance_test --ignore-src -y
 
     - '
-      curl "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-v2.0.0.tar.gz" > opt-iceoryx-v2.0.0.tar.gz
+      curl "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-${ICEORYX_VERSION}.tar.gz" > opt-iceoryx-${ICEORYX_VERSION}.tar.gz
       '
-    - tar -xzf opt-iceoryx-v2.0.0.tar.gz -C /
+    - tar -xzf opt-iceoryx-${ICEORYX_VERSION}.tar.gz -C /
     - find /opt/iceoryx/
     - source /opt/iceoryx/setup.bash
 
@@ -378,11 +398,11 @@ build_cyclonedds_cxx:
           --merge-install
           --cmake-args
             -DCMAKE_BUILD_TYPE=Release
-            -DPERFORMANCE_TEST_CYCLONEDDS_CXX_ENABLED=ON
-            -DPERFORMANCE_TEST_RCLCPP_ENABLED=OFF
+            -DPERFORMANCE_TEST_PLUGIN=CYCLONEDDS_CXX
+            ${CMAKE_ARGS_ENABLE_MSGS}
           --base-path performance_test
       '
-    
+
     - cp LICENSE /opt/performance_test
     - tar cfz opt.tar.gz /opt/performance_test
   artifacts:
@@ -396,14 +416,16 @@ build_cyclonedds_cxx:
 build_iceoryx:
   stage: build
   image: osrf/ros:rolling-desktop
+  extends:
+    - .build_with_only_array_msgs
   script:
     - source /opt/ros/rolling/setup.bash
     - apt-get update
 
     - '
-      curl "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-v2.0.0.tar.gz" > opt-iceoryx-v2.0.0.tar.gz
+      curl "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-${ICEORYX_VERSION}.tar.gz" > opt-iceoryx-${ICEORYX_VERSION}.tar.gz
       '
-    - tar -xzf opt-iceoryx-v2.0.0.tar.gz -C /
+    - tar -xzf opt-iceoryx-${ICEORYX_VERSION}.tar.gz -C /
     - find /opt/iceoryx/
     - source /opt/iceoryx/setup.bash
 
@@ -414,8 +436,8 @@ build_iceoryx:
           --merge-install
           --cmake-args
             -DCMAKE_BUILD_TYPE=Release
-            -DPERFORMANCE_TEST_ICEORYX_ENABLED=ON
-            -DPERFORMANCE_TEST_MINIMAL_MESSAGES=ON
+            -DPERFORMANCE_TEST_PLUGIN=ICEORYX
+            ${CMAKE_ARGS_ENABLE_MSGS}
           --base-path performance_test
       '
     - cp LICENSE /opt/performance_test
@@ -431,6 +453,8 @@ build_iceoryx:
 build_opendds:
   stage: build
   image: osrf/ros:rolling-desktop
+  extends:
+    - .build_with_only_array_msgs
   script:
     - source /opt/ros/rolling/setup.bash
     - apt-get update
@@ -451,8 +475,8 @@ build_opendds:
           --cmake-args
             -DCMAKE_BUILD_TYPE=Release
             -DCMAKE_CXX_FLAGS="-w"
-            -DPERFORMANCE_TEST_OPENDDS_ENABLED=ON
-            -DPERFORMANCE_TEST_RCLCPP_ENABLED=OFF
+            -DPERFORMANCE_TEST_PLUGIN=OPENDDS
+            ${CMAKE_ARGS_ENABLE_MSGS}
           --base-path performance_test
       '
     - cp LICENSE /opt/performance_test
@@ -468,6 +492,8 @@ build_opendds:
 build_fastrtps:
   stage: build
   image: osrf/ros:rolling-desktop
+  extends:
+    - .build_with_only_array_msgs
   script:
     - source /opt/ros/rolling/setup.bash
     - apt-get update
@@ -488,8 +514,8 @@ build_fastrtps:
           --cmake-args
             -DCMAKE_BUILD_TYPE=Release
             -DCMAKE_PREFIX_PATH=/opt/Fast-DDS
-            -DPERFORMANCE_TEST_FASTRTPS_ENABLED=ON
-            -DPERFORMANCE_TEST_RCLCPP_ENABLED=OFF
+            -DPERFORMANCE_TEST_PLUGIN=FASTDDS
+            ${CMAKE_ARGS_ENABLE_MSGS}
       '
     - cp LICENSE /opt/performance_test
     - tar cfz opt.tar.gz /opt/performance_test
@@ -505,6 +531,7 @@ build_ros1:
   stage: build
   image: osrf/ros:melodic-desktop
   script:
+    - apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 4B63CF8FDE49746E98FA01DDAD19BAB3CBF125EA
     - source /opt/ros/melodic/setup.bash
     - apt-get update
     - apt-get install -y python3-colcon-common-extensions
@@ -513,6 +540,14 @@ build_ros1:
     - rm performance_test_ros1_publisher/COLCON_IGNORE  # ROS1 packages are ignored by default
     - colcon build  # Should build msgs and publisher
 
+build_demo_plugin:
+  stage: build
+  image:
+    name: gcr.io/bazel-public/bazel:latest
+    entrypoint: [""]
+  script:
+    - bazel build //performance_test --//:plugin_implementation=//performance_test/plugins/demo:demo_plugin
+
 test:
   stage: test
   image: osrf/ros:rolling-desktop
@@ -520,7 +555,7 @@ test:
     - build_rclcpp_rolling
   script:
     - apt-get update
-    - sudo apt-get install -y python3-pip
+    - apt-get install -y python3-pip
     - rosdep update --include-eol-distros
     - rosdep install --from-paths performance_test performance_report --ignore-src -y
     - tar xf opt.tar.gz -C /
@@ -543,8 +578,8 @@ test_performance_report:
     - build_rclcpp_rolling
   script:
     - apt-get update
-    - sudo apt-get install -y python3-pip 
-    - python3 -m pip install bokeh selenium pandas
+    - sudo apt-get install -y python3-pip
+    - python3 -m pip install bokeh==2.4.3 selenium pandas
     - rosdep update --include-eol-distros
     - rosdep install --from-paths performance_test --ignore-src -y
     - tar -xzf opt.tar.gz -C /
@@ -565,7 +600,7 @@ test_performance_report:
     - find ./perf_logs/time_vs_latency.html
     # Using commander to test performance_report
     - '
-      ros2 run performance_report commander --log-dir perf_logs_commander   --test-name experiments   
+      ros2 run performance_report commander --log-dir perf_logs_commander   --test-name experiments
       --configs performance_report/cfg/runner/run_one_experiment.yaml > commands.sh
       '
     - chmod +x commands.sh
@@ -582,6 +617,7 @@ test_performance_report:
   stage: test
   image: osrf/ros:rolling-desktop
   script:
+    - apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 4B63CF8FDE49746E98FA01DDAD19BAB3CBF125EA
     - apt-get update
     - rosdep update --include-eol-distros
     - rosdep install --from-paths performance_test --ignore-src -y
@@ -750,8 +786,8 @@ smoke_test_cyclonedds:
   variables:
     COMMUNICATION_MEAN: CycloneDDS
     SMOKE_TEST_BEFORE_SCRIPT: '
-        curl  "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-v2.0.0.tar.gz" > opt-iceoryx-v2.0.0.tar.gz;
-        tar -xzf opt-iceoryx-v2.0.0.tar.gz -C /;
+        curl  "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-${ICEORYX_VERSION}.tar.gz" > opt-iceoryx-${ICEORYX_VERSION}.tar.gz;
+        tar -xzf opt-iceoryx-${ICEORYX_VERSION}.tar.gz -C /;
         curl  "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-cyclonedds-v0.9.0b1.tar.gz" > opt-cyclonedds-v0.9.0b1.tar.gz;
         tar -xzf opt-cyclonedds-v0.9.0b1.tar.gz -C /;
         source /opt/iceoryx/setup.bash;
@@ -767,8 +803,8 @@ smoke_test_cyclonedds_cxx:
   variables:
     COMMUNICATION_MEAN: CycloneDDS-CXX
     SMOKE_TEST_BEFORE_SCRIPT: '
-        curl  "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-v2.0.0.tar.gz" > opt-iceoryx-v2.0.0.tar.gz;
-        tar -xzf opt-iceoryx-v2.0.0.tar.gz -C /;
+        curl  "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-${ICEORYX_VERSION}.tar.gz" > opt-iceoryx-${ICEORYX_VERSION}.tar.gz;
+        tar -xzf opt-iceoryx-${ICEORYX_VERSION}.tar.gz -C /;
         curl  "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-cyclonedds-v0.9.0b1.tar.gz" > opt-cyclonedds-v0.9.0b1.tar.gz;
         tar -xzf opt-cyclonedds-v0.9.0b1.tar.gz -C /;
         curl  "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-cyclonedds-cxx-v0.9.0b1.tar.gz" > opt-cyclonedds-cxx-v0.9.0b1.tar.gz;
@@ -785,8 +821,8 @@ smoke_test_iceoryx:
   variables:
     COMMUNICATION_MEAN: iceoryx
     SMOKE_TEST_BEFORE_SCRIPT: '
-        curl  "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-v2.0.0.tar.gz" > opt-iceoryx-v2.0.0.tar.gz;
-        tar -xzf opt-iceoryx-v2.0.0.tar.gz -C /;
+        curl  "https://gitlab.com/api/v4/projects/14953417/packages/generic/performance_test/1.0.0/opt-iceoryx-${ICEORYX_VERSION}.tar.gz" > opt-iceoryx-${ICEORYX_VERSION}.tar.gz;
+        tar -xzf opt-iceoryx-${ICEORYX_VERSION}.tar.gz -C /;
         source /opt/iceoryx/setup.bash;
         mkdir -p /etc/iceoryx;
         printf "[general]\nversion = 1\n\n[[segment]]\n\n[[segment.mempool]]\nsize = 128\ncount = 1000\n\n[[segment.mempool]]\nsize = 1024\ncount = 1000\n\n[[segment.mempool]]\nsize = 16384\ncount = 100\n\n[[segment.mempool]]\nsize = 131072\ncount = 10" > /etc/iceoryx/roudi_config.toml;
@@ -836,7 +872,7 @@ test_security_fast_dds:
     # Unexpected node names:
     - '! ros2 run performance_test perf_test -c rclcpp-single-threaded-executor --msg Array1k -t Array1k --max-runtime 10 --rate 2 --history KEEP_LAST --history-depth 10'
     # Unexpected msg types
-    - '! ros2 run performance_test perf_test -c rclcpp-single-threaded-executor --msg Struct16 -t test_topic --max-runtime 10 --rate 2 --history KEEP_LAST --history-depth 10 --with-security -- --ros-args -e /performance_test'
+    - '! ros2 run performance_test perf_test -c rclcpp-single-threaded-executor --msg Array1k -t test_topic --max-runtime 10 --rate 2 --history KEEP_LAST --history-depth 10 --with-security -- --ros-args -e /performance_test'
     # This should pass (time-out)
     - 'timeout 30 ros2 run performance_test perf_test -c rclcpp-single-threaded-executor --msg Array16k -t Array16k --rate 2 --history KEEP_LAST --history-depth 10 --with-security -- --ros-args -e /performance_test ||
        if [ $? -eq 124 ]; then echo "OK";
@@ -865,7 +901,7 @@ test_security_cyclone_dds:
     # Unexpected node names:
     - '! ros2 run performance_test perf_test -c rclcpp-single-threaded-executor --msg Array1k -t Array1k --max-runtime 10 --rate 2 --history KEEP_LAST --history-depth 10'
     # Unexpected msg types
-    - '! ros2 run performance_test perf_test -c rclcpp-single-threaded-executor --msg Struct16 -t test_topic --max-runtime 10 --rate 2 --history KEEP_LAST --history-depth 10 --with-security -- --ros-args -e /performance_test'
+    - '! ros2 run performance_test perf_test -c rclcpp-single-threaded-executor --msg Array1k -t test_topic --max-runtime 10 --rate 2 --history KEEP_LAST --history-depth 10 --with-security -- --ros-args -e /performance_test'
     # This should pass (time-out)
     - 'timeout 30 ros2 run performance_test perf_test -c rclcpp-single-threaded-executor --msg Array16k -t Array16k --rate 2 --history KEEP_LAST --history-depth 10 --with-security -- --ros-args -e /performance_test ||
        if [ $? -eq 124 ]; then echo "OK";

@@ -1,14 +1,15 @@
 module performance_test {
   module msg {
-    module __plugin__ {
-      typedef octet octet__262144[262144];
-      struct Array256k {
-        octet__262144 array;
+    // 8 bytes for time
+    // 8 bytes for id
+    // 262144 - 16 = 262128
+    typedef octet octet__262144[262128];
+    struct Array256k {
+      octet__262144 array;
 
-        long long time;
+      long long time;
 
-        unsigned long long id;
-      };
-    }; // __plugin__
+      unsigned long long id;
+    };
   }; // msg
 }; // performance_test

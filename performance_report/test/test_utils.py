@@ -1,4 +1,4 @@
-# Copyright 2022 Apex.AI, Inc.
+# Copyright 2023 Apex.AI, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,13 +13,15 @@
 # limitations under the License.
 
 import os
-import yaml
+
 from performance_report.utils import generate_shmem_file_yml
+
+import yaml
 
 
 def test_generate_shmem_file(tmp_path):
     generate_shmem_file_yml(tmp_path)
-    shmem_config_file = os.path.join(tmp_path, "shmem.yml")
-    with open(shmem_config_file, "r") as f:
+    shmem_config_file = os.path.join(tmp_path, 'shmem.yml')
+    with open(shmem_config_file, 'r') as f:
         yaml_contents = yaml.load(f, Loader=yaml.FullLoader)
-        assert yaml_contents["domain"]["shared_memory"]["enable"] is True
+        assert yaml_contents['domain']['shared_memory']['enable'] is True
