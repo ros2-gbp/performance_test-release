@@ -1,22 +1,20 @@
-#include "Struct4k.idl"
+#include "performance_test/msg/Struct4k.idl"
 
 module performance_test {
   module msg {
-    module __plugin__ {
-      struct Struct32k {
-        performance_test::msg::__plugin__::Struct4k struct4k0;
-        performance_test::msg::__plugin__::Struct4k struct4k1;
-        performance_test::msg::__plugin__::Struct4k struct4k2;
-        performance_test::msg::__plugin__::Struct4k struct4k3;
-        performance_test::msg::__plugin__::Struct4k struct4k4;
-        performance_test::msg::__plugin__::Struct4k struct4k5;
-        performance_test::msg::__plugin__::Struct4k struct4k6;
-        performance_test::msg::__plugin__::Struct4k struct4k7;
+    struct Struct32k {
+      performance_test::msg::Struct4k struct4k0;
+      performance_test::msg::Struct4k struct4k1;
+      performance_test::msg::Struct4k struct4k2;
+      performance_test::msg::Struct4k struct4k3;
+      performance_test::msg::Struct4k struct4k4;
+      performance_test::msg::Struct4k struct4k5;
+      performance_test::msg::Struct4k struct4k6;
+      performance_test::msg::Struct4k struct4k7;
 
-        long long time;
+      long long time;
 
-        unsigned long long id;
-      };
-    }; // __plugin__
+      unsigned long long id;
+    };
   }; // msg
 }; // performance_test
