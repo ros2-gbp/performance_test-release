@@ -1,0 +1,12 @@
+module performance_test {
+  module msg {
+    typedef sequence<octet> unbounded__octet;
+    struct UnboundedSequence {
+      unbounded__octet unbounded_sequence;
+
+      long long time;
+
+      unsigned long long id;
+    };
+  }; // msg
+}; // performance_test

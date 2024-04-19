@@ -1,0 +1,8 @@
+module performance_test {
+  module msg {
+    struct FixedTime {
+      long sec;
+      unsigned long nanosec;
+    };
+  }; // msg
+}; // performance_test

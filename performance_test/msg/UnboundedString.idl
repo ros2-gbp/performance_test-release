@@ -1,0 +1,11 @@
+module performance_test {
+  module msg {
+    struct UnboundedString {
+      string unbounded_string;
+
+      long long time;
+
+      unsigned long long id;
+    };
+  }; // msg
+}; // performance_test
