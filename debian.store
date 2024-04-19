@@ -1,1 +1,1 @@
-{"base": "586f152", "parent": "debian/rolling/performance_test", "previous": "f98332a", "trim": "", "trimbase": ""}
+{"base": "a24fc63", "parent": "debian/jazzy/performance_test", "previous": "1bcdbd2", "trim": "", "trimbase": ""}
