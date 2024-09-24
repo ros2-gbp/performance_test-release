@@ -2,6 +2,8 @@
 # All rights reserved.
 
 load("@pip_deps//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_library")
+load("@rules_python//python:defs.bzl", "py_binary")
 
 py_library(
     name = "performance_report_lib",
@@ -16,7 +18,7 @@ py_library(
     deps = [
         requirement("pandas"),
         requirement("bokeh"),
-    ]
+    ],
 )
 
 py_binary(

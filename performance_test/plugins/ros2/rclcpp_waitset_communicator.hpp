@@ -48,6 +48,10 @@ public:
         std::chrono::nanoseconds(100 * 1000 * 1000)))
   {
     m_waitset.add_subscription(m_subscription);
+  }
+
+  void prepare() override
+  {
 #ifdef PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED
     if (ec.expected_num_pubs > 0) {
       m_subscription->wait_for_matched(

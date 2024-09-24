@@ -31,11 +31,12 @@ class PublisherTask
 public:
   PublisherTask(
     const ExperimentConfiguration & ec,
-    PublisherStats & stats,
-    std::unique_ptr<Publisher> && pub);
+    PublisherStats & stats);
 
   PublisherTask & operator=(const PublisherTask &) = delete;
   PublisherTask(const PublisherTask &) = delete;
+
+  void prepare();
 
   void run();
 

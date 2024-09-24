@@ -19,7 +19,6 @@
 #include "performance_test/execution_tasks/publisher_task.hpp"
 #include "performance_test/execution_tasks/subscriber_task.hpp"
 #include "performance_test/experiment_configuration/experiment_configuration.hpp"
-#include "performance_test/experiment_execution/pub_sub_factory.hpp"
 #include "performance_test/experiment_execution/runner.hpp"
 
 namespace performance_test
@@ -31,15 +30,13 @@ DataEntityRunner::DataEntityRunner(const ExperimentConfiguration & ec)
     m_subs.push_back(
       std::make_shared<SubscriberTask>(
         ec,
-        m_sub_stats.at(i),
-        PubSubFactory::get().create_subscriber(ec)));
+        m_sub_stats.at(i)));
   }
   for (uint32_t i = 0; i < m_ec.number_of_publishers; ++i) {
     m_pubs.push_back(
       std::make_shared<PublisherTask>(
         ec,
-        m_pub_stats.at(i),
-        PubSubFactory::get().create_publisher(ec)));
+        m_pub_stats.at(i)));
   }
 }
 

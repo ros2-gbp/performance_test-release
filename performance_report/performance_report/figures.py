@@ -67,15 +67,17 @@ def generateFigure(figConfig, datasets: 'list[DatasetConfig]'):
         df = dataset.dataframe
 
         # filter dataframe based on specified ranges
-        if(len(dataset.experiments) > 1):
+        if (len(dataset.experiments) > 1):
             # if multiple experiments in dataset
             filtered_results = []
             for experiment in dataset.experiments:
                 exp_df = experiment.as_dataframe()
                 exp_cols = list(exp_df.columns.values)
-                matching_rows = \
-                    dataset.dataframe[exp_cols].stack().isin(exp_df.stack().values).unstack()
-                result_df = dataset.dataframe[matching_rows.all(axis='columns')]
+
+                exp_df = exp_df.set_index(exp_cols)
+                dataset_df = dataset.dataframe.set_index(exp_cols)
+                result_df = dataset_df.join(exp_df, how='inner')
+
                 # default to average of specified range
                 summary_df = result_df.groupby(experiment.get_members()).mean().reset_index()
                 filtered_results.append(summary_df)
@@ -83,6 +85,7 @@ def generateFigure(figConfig, datasets: 'list[DatasetConfig]'):
         line_name = dataset.name
         scatter_name = line_name + ' ' + dataset.theme.marker.shape
         if is_categorical:
+            df[figConfig['x_range']] = df[figConfig['x_range']].astype(str)
             fig.x_range.factors = list(df[figConfig['x_range']])
             source = ColumnDataSource(df)
             fig.scatter(

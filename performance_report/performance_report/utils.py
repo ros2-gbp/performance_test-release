@@ -20,8 +20,6 @@ import pandas as pd
 
 from performance_report.qos import DURABILITY, HISTORY, RELIABILITY
 
-import yaml
-
 
 class ExperimentConfig:
     def __init__(
@@ -151,29 +149,6 @@ class ExperimentConfig:
     def cli_commands(self, perf_test_exe_cmd, output_dir) -> list:
         args = self.cli_args(output_dir)
         commands = []
-        cleanup_commands = []
-
-        if self.sample_transport == 'SHARED_MEMORY' or self.sample_transport == 'LOANED_SAMPLES':
-            if is_ros2_plugin(self.com_mean):
-                try:
-                    from rclpy.utilities import get_rmw_implementation_identifier
-                    if get_rmw_implementation_identifier() == 'rmw_cyclonedds_cpp':
-                        commands.extend(generate_commands_xml(output_dir))
-                        cleanup_commands.append('unset CYCLONEDDS_URI')
-                    else:
-                        print('Unsupported Middleware: ', get_rmw_implementation_identifier())
-                except ImportError:
-                    print('WARNING: rclpy not found. Running with shared memory is unavailable.')
-            elif self.com_mean == 'ApexOSPollingSubscription':
-                commands.extend(generate_commands_yml(output_dir))
-                cleanup_commands.append('unset APEX_MIDDLEWARE_SETTINGS')
-            elif self.com_mean == 'CycloneDDS' or self.com_mean == 'CycloneDDS-CXX':
-                commands.extend(generate_commands_xml(output_dir))
-                cleanup_commands.append('unset CYCLONEDDS_URI')
-            elif self.com_mean == 'iceoryx':
-                pass
-            else:
-                pass
 
         if len(args) == 1:
             commands.append(perf_test_exe_cmd + args[0])
@@ -186,15 +161,16 @@ class ExperimentConfig:
         else:
             raise RuntimeError('Unreachable code')
 
-        commands.extend(cleanup_commands)
         return commands
 
     def cli_args(self, output_dir) -> list:
         args = ''
         args += f' -c {self.com_mean}'
         args += f' -e {self.execution_strategy}'
+        if self.sample_transport == 'SHARED_MEMORY':
+            args += ' --shared-memory'
         if self.sample_transport == 'LOANED_SAMPLES':
-            args += ' --zero-copy'
+            args += ' --shared-memory --loaned-samples'
         args += f' -m {self.msg}'
         args += f' -r {self.rate}'
         if self.reliability == RELIABILITY.RELIABLE:
@@ -376,74 +352,3 @@ def create_dir(dir_path) -> bool:
     except FileNotFoundError:
         # given path is not viable
         return False
-
-
-def generate_shmem_file_yml(dir_path) -> str:
-    shmem_config_file = os.path.join(dir_path, 'shmem.yml')
-    if not os.path.exists(shmem_config_file):
-        with open(shmem_config_file, 'w') as outfile:
-            shmem_dict = dict(domain=dict(shared_memory=dict(enable=True)))  # noqa: C408
-            yaml.safe_dump(shmem_dict, outfile)
-    return shmem_config_file
-
-
-def generate_shmem_file_xml(dir_path) -> str:
-    shmem_config_file = os.path.join(dir_path, 'shmem.xml')
-    if not os.path.exists(shmem_config_file):
-        root = et.Element('CycloneDDS')  # noqa: F821
-        root.set('xmlns', 'https://cdds.io/config')
-        root.set('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance')
-        root.set('xsi:schemaLocation', 'https://cdds.io/config '
-                 'https://raw.githubusercontent.com/eclipse-cyclonedds'
-                 '/cyclonedds/iceoryx/etc/cyclonedds.xsd')
-        domain = et.SubElement(root, 'Domain')  # noqa: F821
-        sharedMemory = et.SubElement(domain, 'SharedMemory')  # noqa: F821
-        et.SubElement(sharedMemory, 'Enable').text = 'true'  # noqa: F821
-        et.SubElement(sharedMemory, 'LogLevel').text = 'info'  # noqa: F821
-        tree = et.ElementTree(root)  # noqa: F821
-        tree._setroot(root)
-        tree.write(shmem_config_file, encoding='UTF-8', xml_declaration=True)
-    return shmem_config_file
-
-
-def is_ros2_plugin(com_mean) -> bool:
-    if (com_mean == 'rclcpp-single-threaded-executor' or
-            com_mean == 'rclcpp-static-single-threaded-executor' or
-            com_mean == 'rclcpp-waitset'):
-        return True
-    else:
-        return False
-
-
-def generate_commands_yml(output_dir) -> list:
-    shmem_config_file = os.path.join(output_dir, 'shmem.yml')
-    commands = []
-    commands.append(f'export APEX_MIDDLEWARE_SETTINGS="{shmem_config_file}"')
-    commands.append('cat > ${APEX_MIDDLEWARE_SETTINGS} << EOF')
-    commands.append('domain:')
-    commands.append('  shared_memory:')
-    commands.append('    enable: true')
-    commands.append('EOF')
-    return commands
-
-
-def generate_commands_xml(output_dir) -> list:
-    shmem_config_file = os.path.join(output_dir, 'shmem.xml')
-    commands = []
-    commands.append(f'export CYCLONEDDS_URI="{shmem_config_file}"')
-    commands.append('cat > ${CYCLONEDDS_URI} << EOF')
-    commands.append('<?xml version="1.0" encoding="UTF-8" ?>')
-    commands.append('<CycloneDDS xmlns="https://cdds.io/config" '
-                    'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-                    'xsi:schemaLocation="https://cdds.io/config '
-                    'https://raw.githubusercontent.com/eclipse-cyclonedds'
-                    '/cyclonedds/iceoryx/etc/cyclonedds.xsd">')
-    commands.append('   <Domain id="any">')
-    commands.append('       <SharedMemory>')
-    commands.append('           <Enable>true</Enable>')
-    commands.append('           <LogLevel>info</LogLevel>')
-    commands.append('       </SharedMemory>')
-    commands.append('   </Domain>')
-    commands.append('</CycloneDDS>')
-    commands.append('EOF')
-    return commands

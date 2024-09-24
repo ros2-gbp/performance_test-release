@@ -77,8 +77,11 @@ public:
     if (ec.number_of_publishers > 1 || ec.number_of_subscribers > 1) {
       throw std::runtime_error("This plugin only supports 1 publisher and 1 subscriber");
     }
-    if (ec.is_zero_copy_transfer) {
-      throw std::runtime_error("This plugin does not support zero-copy transfer");
+    if (ec.use_shared_memory) {
+      throw std::runtime_error("This plugin can not use shared memory");
+    }
+    if (ec.use_loaned_samples) {
+      throw std::runtime_error("This plugin can not use loaned samples");
     }
   }
 

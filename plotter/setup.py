@@ -26,10 +26,10 @@ import re
 
 from setuptools import find_packages, setup
 
-NAME = 'apex-performance-plotter'
+NAME = 'plotter'
 DESCRIPTION = 'Apex performance test report plotter'
 ENTRY_POINTS = {
-    'console_scripts': ['perfplot = apex_performance_plotter:plot_logfiles']
+    'console_scripts': ['perfplot = plotter:plot_logfiles']
 }
 
 os.chdir(os.path.abspath(os.path.dirname(__file__)))

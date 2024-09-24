@@ -54,9 +54,9 @@ TEST(performance_test, SampleStatistics_two_samples) {
 
   const double mean = (small + big) / 2.0;
   const double variance =
-    ((mean - small) * (mean - small)
-      + (mean - big) * (mean - big))
-    / (2.0 - 1.0);
+    ((mean - small) * (mean - small) +
+    (mean - big) * (mean - big)) /
+    (2.0 - 1.0);
 
   ASSERT_EQ(st.n(), 2);
   ASSERT_EQ(st.min(), small);
@@ -78,10 +78,10 @@ TEST(performance_test, SampleStatistics_three_samples) {
 
   const double mean = (small + big + mid) / 3.0;
   const double variance =
-    ((mean - small) * (mean - small)
-      + (mean - mid) * (mean - mid)
-      + (mean - big) * (mean - big))
-    / (3.0 - 1.0);
+    ((mean - small) * (mean - small) +
+    (mean - mid) * (mean - mid) +
+    (mean - big) * (mean - big)) /
+    (3.0 - 1.0);
 
   ASSERT_EQ(st.n(), 3);
   ASSERT_EQ(st.min(), small);

@@ -61,9 +61,6 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
         -DCMAKE_BUILD_TYPE=Release \
         -DPERFORMANCE_TEST_PLUGIN=CYCLONEDDS_CXX
 
-ADD dockerfiles/cyclonedds.xml /
-ENV CYCLONEDDS_URI=/cyclonedds.xml
-
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> /root/setup.bash
 RUN echo 'LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/cyclonedds/lib"' >> /root/setup.bash
 RUN echo 'LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/cyclonedds-cxx/lib"' >> /root/setup.bash
