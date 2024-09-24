@@ -1,4 +1,4 @@
-// Copyright 2021 Apex.AI, Inc.
+// Copyright 2021-2024 Apex.AI, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,35 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "csv_output.hpp"
+#include "performance_test/outputs/csv_output.hpp"
 
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <string>
 
-#include "../experiment_execution/analysis_result.hpp"
+#include "performance_test/experiment_metrics/analysis_result.hpp"
+#include "performance_test/utilities/external_info.hpp"
 
 namespace performance_test
 {
-CsvOutput::CsvOutput()
-: m_ec(ExperimentConfiguration::get()) {}
+CsvOutput::CsvOutput(const std::string & logfile_path)
+: m_logfile_path(logfile_path) {}
 
 CsvOutput::~CsvOutput()
 {
   close();
 }
 
-void CsvOutput::open()
+void CsvOutput::open(const ExperimentConfiguration & ec)
 {
-  if (m_ec.is_setup() && !m_ec.logfile_name().empty()) {
-    m_os.open(m_ec.logfile_name(), std::ofstream::out);
+  if (!m_logfile_path.empty()) {
+    m_os.open(m_logfile_path, std::ofstream::out);
     m_is_open = true;
 
-    std::cout << "Writing CSV output to: " << m_ec.logfile_name() << std::endl;
+    std::cout << "Writing CSV output to: " << m_logfile_path << std::endl;
 
     // write experiment details
-    m_os << m_ec;
-    m_os << m_ec.get_external_info().m_to_log;
+    m_os << ec;
+    m_os << ExternalInfo::as_string();
     m_os << std::endl << std::endl;
 
     // write header
@@ -48,9 +50,9 @@ void CsvOutput::open()
     m_os << AnalysisResult::csv_header(true) << std::endl;
   }
 }
-void CsvOutput::update(std::shared_ptr<const AnalysisResult> result)
+void CsvOutput::update(const AnalysisResult & result)
 {
-  m_os << result->to_csv_string(true) << std::endl;
+  m_os << result.to_csv_string(true) << std::endl;
 }
 
 void CsvOutput::close()
