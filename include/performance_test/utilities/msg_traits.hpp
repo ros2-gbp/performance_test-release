@@ -21,16 +21,46 @@ namespace performance_test
 {
 struct MsgTraits
 {
-  // TODO(erik.snider) switch to std::void_t when upgrading to C++17
-  template<class ...>
-  using void_t = void;
+  // TODO(erik.snider) use concepts when upgrading to C++20
+
+  template<typename T, typename = void>
+  struct has_id_object : std::false_type {};
+
+  template<typename T>
+  struct has_id_object<
+    T, std::void_t<decltype(std::declval<T>().id)>>
+    : std::true_type {};
+
+  template<typename T, typename = void>
+  struct has_id_function : std::false_type {};
+
+  template<typename T>
+  struct has_id_function<
+    T, std::void_t<decltype(std::declval<T>().id())>>
+    : std::true_type {};
+
+  template<typename T, typename = void>
+  struct has_time_object : std::false_type {};
+
+  template<typename T>
+  struct has_time_object<
+    T, std::void_t<decltype(std::declval<T>().time)>>
+    : std::true_type {};
+
+  template<typename T, typename = void>
+  struct has_time_function : std::false_type {};
+
+  template<typename T>
+  struct has_time_function<
+    T, std::void_t<decltype(std::declval<T>().time())>>
+    : std::true_type {};
 
   template<typename T, typename = void>
   struct has_bounded_sequence : std::false_type {};
 
   template<typename T>
   struct has_bounded_sequence<
-    T, void_t<decltype(std::declval<T>().bounded_sequence)>>
+    T, std::void_t<decltype(std::declval<T>().bounded_sequence)>>
     : std::true_type {};
 
   template<typename T, typename = void>
@@ -38,7 +68,7 @@ struct MsgTraits
 
   template<typename T>
   struct has_bounded_sequence_func<
-    T, void_t<decltype(std::declval<T>().bounded_sequence())>>
+    T, std::void_t<decltype(std::declval<T>().bounded_sequence())>>
     : std::true_type {};
 
   template<typename T, typename = void>
@@ -46,7 +76,7 @@ struct MsgTraits
 
   template<typename T>
   struct has_unbounded_sequence<
-    T, void_t<decltype(std::declval<T>().unbounded_sequence)>>
+    T, std::void_t<decltype(std::declval<T>().unbounded_sequence)>>
     : std::true_type {};
 
   template<typename T, typename = void>
@@ -54,7 +84,7 @@ struct MsgTraits
 
   template<typename T>
   struct has_unbounded_sequence_func<
-    T, void_t<decltype(std::declval<T>().unbounded_sequence())>>
+    T, std::void_t<decltype(std::declval<T>().unbounded_sequence())>>
     : std::true_type {};
 
   template<typename T, typename = void>
@@ -62,7 +92,7 @@ struct MsgTraits
 
   template<typename T>
   struct has_unbounded_string<
-    T, void_t<decltype(std::declval<T>().unbounded_string)>>
+    T, std::void_t<decltype(std::declval<T>().unbounded_string)>>
     : std::true_type {};
 
   template<typename T, typename = void>
@@ -70,32 +100,8 @@ struct MsgTraits
 
   template<typename T>
   struct has_unbounded_string_func<
-    T, void_t<decltype(std::declval<T>().unbounded_string())>>
+    T, std::void_t<decltype(std::declval<T>().unbounded_string())>>
     : std::true_type {};
-
-  template<typename T>
-  static inline std::enable_if_t<has_bounded_sequence<T>::value ||
-    has_bounded_sequence_func<T>::value ||
-    has_unbounded_sequence<T>::value ||
-    has_unbounded_sequence_func<T>::value ||
-    has_unbounded_string<T>::value ||
-    has_unbounded_string_func<T>::value,
-    void>
-  ensure_fixed_size(T &)
-  {
-    throw std::runtime_error(
-            "This plugin only supports messages with a fixed size");
-  }
-
-  template<typename T>
-  static inline std::enable_if_t<!has_bounded_sequence<T>::value &&
-    !has_bounded_sequence_func<T>::value &&
-    !has_unbounded_sequence<T>::value &&
-    !has_unbounded_sequence_func<T>::value &&
-    !has_unbounded_string<T>::value &&
-    !has_unbounded_string_func<T>::value,
-    void>
-  ensure_fixed_size(T &) {}
 };
 
 }  // namespace performance_test

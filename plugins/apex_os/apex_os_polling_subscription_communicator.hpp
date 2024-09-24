@@ -39,21 +39,26 @@ public:
   using DataType = typename Msg::RosType;
 
   explicit ApexOSPollingSubscriptionSubscriber(const ExperimentConfiguration & ec)
-  : m_node(RclcppResourceManager::get().rclcpp_node(ec)),
+  : m_ec(ec),
+    m_node(RclcppResourceManager::get().rclcpp_node(ec)),
     m_ROS2QOSAdapter(ROS2QOSAdapter(ec.qos).get()),
     m_polling_subscription(m_node->create_polling_subscription<DataType>(
         ec.topic_name + ec.sub_topic_postfix(),
         m_ROS2QOSAdapter)),
     m_waitset(std::make_unique<rclcpp::Waitset<>>(m_polling_subscription))
   {
-    if (ec.expected_num_pubs > 0) {
+  }
+
+  void prepare() override
+  {
+    if (m_ec.expected_num_pubs > 0) {
       m_polling_subscription->wait_for_matched(
-        ec.expected_num_pubs,
-        ec.wait_for_matched_timeout,
+        m_ec.expected_num_pubs,
+        m_ec.wait_for_matched_timeout,
         std::greater_equal<size_t>(),
         0U,
         std::greater_equal<size_t>(),
-        std::chrono::milliseconds(10 * ec.number_of_subscribers));
+        std::chrono::milliseconds(10 * m_ec.number_of_subscribers));
     }
   }
 
@@ -82,6 +87,7 @@ public:
   }
 
 private:
+  const ExperimentConfiguration & m_ec;
   std::shared_ptr<rclcpp::Node> m_node;
   rclcpp::QoS m_ROS2QOSAdapter;
   using PollingSubscriptionType = ::rclcpp::PollingSubscription<DataType>;
