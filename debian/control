@@ -1,0 +1,12 @@
+Source: ros-iron-performance-test
+Section: misc
+Priority: optional
+Maintainer: Apex AI, Inc. <opensource@apex.ai>
+Build-Depends: debhelper (>= 9.0.0), git, ros-iron-ament-cmake, ros-iron-ament-cmake-gtest <!nocheck>, ros-iron-ament-lint-auto <!nocheck>, ros-iron-ament-lint-common <!nocheck>, ros-iron-rclcpp, ros-iron-ros-environment, ros-iron-rosidl-default-generators, ros-iron-ros-workspace, ros-iron-rosidl-typesupport-fastrtps-c, ros-iron-rosidl-typesupport-fastrtps-cpp
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-iron-performance-test
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-iron-rclcpp, ros-iron-rmw-implementation, ros-iron-rosidl-default-runtime, ros-iron-ros-workspace
+Description: Tool to test performance of ROS2 and DDS data layers and communication.
