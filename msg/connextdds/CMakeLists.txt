@@ -98,7 +98,6 @@ foreach(idl ${IDL_FILES})
     get_filename_component(filename ${idl} NAME)
 
     file(READ ${idl} filedata)
-    string(REGEX REPLACE "__plugin__" "ConnextDDSGen" filedata "${filedata}")
     file(WRITE ${IDL_GEN_ROOT}/${filename} "${filedata}")
 
     connextdds_run_codegen(

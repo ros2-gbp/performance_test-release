@@ -1,14 +1,15 @@
 module performance_test {
   module msg {
-    module __plugin__ {
-      typedef octet octet__8388608[8388608];
-      struct Array8m {
-        octet__8388608 array;
+    // 8 bytes for time
+    // 8 bytes for id
+    // 8388608 - 16 = 8388592
+    typedef octet octet__8388608[8388592];
+    struct Array8m {
+      octet__8388608 array;
 
-        long long time;
+      long long time;
 
-        unsigned long long id;
-      };
-    }; // __plugin__
+      unsigned long long id;
+    };
   }; // msg
 }; // performance_test

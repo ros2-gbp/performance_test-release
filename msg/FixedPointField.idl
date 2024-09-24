@@ -1,13 +1,11 @@
 module performance_test {
   module msg {
-    module __plugin__ {
-      typedef char name_char__256[256];
-      struct FixedPointField {
-        name_char__256 name;
-        unsigned long offset;
-        octet datatype;
-        unsigned long count;
-      };
-    }; // __plugin__
+    typedef char name_char__256[256];
+    struct FixedPointField {
+      name_char__256 name;
+      unsigned long offset;
+      octet datatype;
+      unsigned long count;
+    };
   }; // msg
 }; // performance_test
