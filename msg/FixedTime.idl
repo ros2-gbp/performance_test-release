@@ -1,10 +1,8 @@
 module performance_test {
   module msg {
-    module __plugin__ {
-      struct FixedTime {
-        long sec;
-        unsigned long nanosec;
-        };
-    }; // __plugin__
+    struct FixedTime {
+      long sec;
+      unsigned long nanosec;
+    };
   }; // msg
 }; // performance_test

@@ -1,0 +1,9 @@
+# Copyright 2024 Apex.AI, Inc.
+# All rights reserved.
+
+cc_library(
+    name = "rapidjson",
+    hdrs = glob(["include/**/*.h"]),
+    includes = ["include"],
+    visibility = ["//visibility:public"],
+)
