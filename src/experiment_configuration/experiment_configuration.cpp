@@ -83,7 +83,7 @@ std::ostream & operator<<(std::ostream & stream, const ExperimentConfiguration &
     "\nNumber of subscribers: " << e.number_of_subscribers <<
     "\nMemory check enabled: " << e.check_memory <<
     "\nWith security: " << e.with_security <<
-    "\nZero copy transfer: " << e.is_zero_copy_transfer <<
+    "\nZero copy transfer: " << e.use_loaned_samples <<
     "\nUnbounded message size: " << e.unbounded_msg_size <<
     "\nRoundtrip Mode: " << e.roundtrip_mode <<
     "\nIgnore seconds from beginning: " << e.rows_to_ignore;

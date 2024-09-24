@@ -14,6 +14,7 @@
 
 #include "performance_test/cli/cli_parser.hpp"
 
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -64,8 +65,9 @@ CLIParser::CLIParser(int argc, char ** argv)
     TCLAP::ValueArg<std::string> msgArg("m", "msg", "The message type. "
       "Default is " + allowedMsgs[0] + ".", false, allowedMsgs[0], &allowedMsgVals, cmd);
 
-    TCLAP::ValueArg<uint32_t> ddsDomainIdArg("", "dds-domain_id",
-      "The DDS domain id. Default is 0.", false, 0, "id", cmd);
+    TCLAP::ValueArg<uint32_t> ddsDomainIdArg("", "dds-domain-id",
+      "The DDS domain id. If unspecified, fall back to the ROS_DOMAIN_ID environment variable. "
+      "Default is 0.", false, 0, "id", cmd);
 
     std::vector<std::string> allowedReliabilityArgs{"RELIABLE", "BEST_EFFORT"};
     TCLAP::ValuesConstraint<std::string> allowedReliabilityArgsVals(allowedReliabilityArgs);
@@ -82,11 +84,11 @@ CLIParser::CLIParser(int argc, char ** argv)
     std::vector<std::string> allowedHistoryArgs{"KEEP_LAST", "KEEP_ALL"};
     TCLAP::ValuesConstraint<std::string> allowedHistoryArgsVals(allowedHistoryArgs);
     TCLAP::ValueArg<std::string> historyArg("", "history",
-      "The QOS History type. Default is KEEP_ALL.", false, "KEEP_ALL",
+      "The QOS History type. Default is KEEP_LAST.", false, "KEEP_LAST",
       &allowedHistoryArgsVals, cmd);
 
     TCLAP::ValueArg<uint32_t> historyDepthArg("", "history-depth",
-      "The history depth QOS. Default is 1000.", false, 1000, "N", cmd);
+      "The history depth QOS. Default is 16.", false, 16, "N", cmd);
 
     TCLAP::ValueArg<uint64_t> maxRuntimeArg("", "max-runtime",
       "Run N seconds, then exit. 0 means run forever. Default is 0.", false, 0, "N", cmd);
@@ -132,17 +134,23 @@ CLIParser::CLIParser(int argc, char ** argv)
     std::vector<uint32_t> allowedExpectedNumPubsArgs{0, 1};
     TCLAP::ValuesConstraint<uint32_t> allowedExpectedNumPubsArgsVals(allowedExpectedNumPubsArgs);
     TCLAP::ValueArg<uint32_t> expectedNumPubsArg("", "expected-num-pubs",
-      "Expected number of publishers for wait-for-matched. Default is 0.", false, 0,
-      &allowedExpectedNumPubsArgsVals, cmd);
+      "Expected number of publishers for wait-for-matched. Default is the same as the -p arg.",
+      false, 0, &allowedExpectedNumPubsArgsVals, cmd);
 
     TCLAP::ValueArg<uint32_t> expectedNumSubsArg("", "expected-num-subs",
-      "Expected number of subscribers for wait-for-matched. Default is 0.", false, 0, "N", cmd);
+      "Expected number of subscribers for wait-for-matched. Default is the same as the -s arg.",
+      false, 0, "N", cmd);
 
     TCLAP::ValueArg<uint32_t> waitForMatchedTimeoutArg("", "wait-for-matched-timeout",
       "Maximum time in seconds to wait for matched pubs/subs. Default is 30.", false, 30, "N", cmd);
 
+    TCLAP::SwitchArg sharedMemoryArg("", "shared-memory",
+      "Enable shared-memory transfer. Depending on the plugin implementation, "
+      "this may override some or all runtime flags that you have already set.", cmd, false);
+    TCLAP::SwitchArg loanedSamplesArg("", "loaned-samples",
+      "Use the loaned sample API for publishing messages.", cmd, false);
     TCLAP::SwitchArg zeroCopyArg("", "zero-copy",
-      "Use zero copy transfer.", cmd, false);
+      "An alias for --shared-memory --loaned-samples.", cmd, false);
 
     TCLAP::ValueArg<uint32_t> unboundedMsgSizeArg("", "unbounded-msg-size",
       "The number of bytes to use for an unbounded message type. "
@@ -171,6 +179,13 @@ CLIParser::CLIParser(int argc, char ** argv)
     experiment_configuration.communicator = communicatorArg.getValue();
     experiment_configuration.execution_strategy = executionStrategyArg.getValue();
     experiment_configuration.dds_domain_id = ddsDomainIdArg.getValue();
+    if (experiment_configuration.dds_domain_id == 0) {
+      const char * domain_id_str = std::getenv("ROS_DOMAIN_ID");
+      if (domain_id_str != nullptr) {
+        experiment_configuration.dds_domain_id =
+          static_cast<std::uint32_t>(std::stoi(domain_id_str));
+      }
+    }
     experiment_configuration.qos = qos;
     experiment_configuration.rate = rateArg.getValue();
     experiment_configuration.topic_name = topicArg.getValue();
@@ -187,13 +202,29 @@ CLIParser::CLIParser(int argc, char ** argv)
     experiment_configuration.check_memory = checkMemoryArg.getValue();
     experiment_configuration.rt_config = rt_config;
     experiment_configuration.with_security = withSecurityArg.getValue();
-    experiment_configuration.is_zero_copy_transfer = zeroCopyArg.getValue();
+    experiment_configuration.use_shared_memory = sharedMemoryArg.getValue();
+    experiment_configuration.use_loaned_samples = loanedSamplesArg.getValue();
+    if (zeroCopyArg.getValue()) {
+      experiment_configuration.use_shared_memory = true;
+      experiment_configuration.use_loaned_samples = true;
+    }
     experiment_configuration.prevent_cpu_idle = preventCpuIdleArg.getValue();
     experiment_configuration.roundtrip_mode =
       round_trip_mode_from_string(roundTripModeArg.getValue());
     experiment_configuration.output_configuration = output_config;
     experiment_configuration.argc = argc;
     experiment_configuration.argv = argv;
+
+    if (experiment_configuration.number_of_publishers > 0 &&
+      experiment_configuration.expected_num_pubs == 0)
+    {
+      experiment_configuration.expected_num_pubs = experiment_configuration.number_of_publishers;
+    }
+    if (experiment_configuration.number_of_subscribers > 0 &&
+      experiment_configuration.expected_num_subs == 0)
+    {
+      experiment_configuration.expected_num_subs = experiment_configuration.number_of_subscribers;
+    }
   } catch (TCLAP::ArgException & e) {
     std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
   }

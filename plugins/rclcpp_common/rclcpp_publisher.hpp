@@ -37,18 +37,22 @@ public:
   using DataType = typename Msg::RosType;
 
   explicit RclcppPublisher(const ExperimentConfiguration & ec)
-  : m_ec(ec),
+  : Publisher(ec),
     m_node(RclcppResourceManager::get().rclcpp_node(ec)),
     m_ROS2QOSAdapter(ROS2QOSAdapter(ec.qos).get()),
     m_publisher(m_node->create_publisher<DataType>(
         ec.topic_name + ec.pub_topic_postfix(),
         m_ROS2QOSAdapter))
   {
+  }
+
+  void prepare() override
+  {
 #ifdef PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED
-    if (ec.expected_num_subs > 0) {
+    if (m_ec.expected_num_subs > 0) {
       m_publisher->wait_for_matched(
-        ec.expected_num_subs,
-        ec.wait_for_matched_timeout);
+        m_ec.expected_num_subs,
+        m_ec.wait_for_matched_timeout);
     }
 #endif
   }
@@ -78,91 +82,10 @@ public:
   }
 
 private:
-  const ExperimentConfiguration & m_ec;
   std::shared_ptr<rclcpp::Node> m_node;
   rclcpp::QoS m_ROS2QOSAdapter;
   std::shared_ptr<::rclcpp::Publisher<DataType>> m_publisher;
   DataType m_data;
-
-#ifdef PERFORMANCE_TEST_RCLCPP_LOANED_API_2_ENABLED
-  inline
-  void init_msg(
-    typename DataType::NonFlatType & msg,
-    const TimestampProvider & timestamp_provider,
-    std::uint64_t sample_id)
-  {
-    init_bounded_sequence(msg);
-    init_unbounded_sequence(msg);
-    init_unbounded_string(msg);
-    msg.id = sample_id;
-    msg.time = timestamp_provider.get();
-  }
-
-  inline
-  void init_msg(
-    typename DataType::FlatType & msg,
-    const TimestampProvider & timestamp_provider,
-    std::uint64_t sample_id)
-  {
-    init_bounded_sequence(msg);
-    init_unbounded_sequence(msg);
-    init_unbounded_string(msg);
-    msg.id = sample_id;
-    msg.time = timestamp_provider.get();
-  }
-#else
-  inline
-  void init_msg(
-    DataType & msg,
-    const TimestampProvider & timestamp_provider,
-    std::uint64_t sample_id)
-  {
-    init_bounded_sequence(msg);
-    init_unbounded_sequence(msg);
-    init_unbounded_string(msg);
-    msg.id = sample_id;
-    msg.time = timestamp_provider.get();
-  }
-#endif
-
-  template<typename T>
-  inline
-  std::enable_if_t<MsgTraits::has_bounded_sequence<T>::value, void>
-  init_bounded_sequence(T & msg)
-  {
-    msg.bounded_sequence.resize(msg.bounded_sequence.capacity());
-  }
-
-  template<typename T>
-  inline
-  std::enable_if_t<!MsgTraits::has_bounded_sequence<T>::value, void>
-  init_bounded_sequence(T &) {}
-
-  template<typename T>
-  inline
-  std::enable_if_t<MsgTraits::has_unbounded_sequence<T>::value, void>
-  init_unbounded_sequence(T & msg)
-  {
-    msg.unbounded_sequence.resize(m_ec.unbounded_msg_size);
-  }
-
-  template<typename T>
-  inline
-  std::enable_if_t<!MsgTraits::has_unbounded_sequence<T>::value, void>
-  init_unbounded_sequence(T &) {}
-
-  template<typename T>
-  inline
-  std::enable_if_t<MsgTraits::has_unbounded_string<T>::value, void>
-  init_unbounded_string(T & msg)
-  {
-    msg.unbounded_string.resize(m_ec.unbounded_msg_size);
-  }
-
-  template<typename T>
-  inline
-  std::enable_if_t<!MsgTraits::has_unbounded_string<T>::value, void>
-  init_unbounded_string(T &) {}
 };
 
 }  // namespace performance_test
