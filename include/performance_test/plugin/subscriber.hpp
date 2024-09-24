@@ -27,6 +27,13 @@ class Subscriber
 public:
   virtual ~Subscriber() = default;
 
+  /// @brief Prepare for communication
+  /// This is called once, after all Publishers and Subscribers
+  /// are created, and before any messages are sent.
+  /// This is a good place to put blocking operations that do not belong in
+  /// the constructor, such as participant discovery.
+  virtual void prepare() {}
+
   virtual void update_subscription(MessageReceivedListener & listener) = 0;
 
   virtual void take(MessageReceivedListener &)

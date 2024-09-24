@@ -26,7 +26,9 @@ namespace performance_test
 {
 
 MemoryChecker::MemoryChecker(const ExperimentConfiguration & ec)
+#ifdef PERFORMANCE_TEST_MEMORYTOOLS_ENABLED
 : m_memory_tools_on(false)
+#endif
 {
   if (ec.check_memory) {
 #ifdef PERFORMANCE_TEST_MEMORYTOOLS_ENABLED
