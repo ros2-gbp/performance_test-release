@@ -34,11 +34,11 @@ class SubscriberImpl : public Subscriber
 {
 public:
   explicit SubscriberImpl(const ExperimentConfiguration & ec)
-  : accepter([this](){
-      std::unique_lock lock(m_mutex);
-      start_accepter.wait(lock);
-      connection_fd = accept(sfd, nullptr, nullptr);
-    })
+  : accepter([this]() {
+        std::unique_lock lock(m_mutex);
+        start_accepter.wait(lock);
+        connection_fd = accept(sfd, nullptr, nullptr);
+      })
   {
     // Create and configure the data reader, QoS settings, etc
 
@@ -57,9 +57,10 @@ public:
     saddr.sin_addr.s_addr = htonl(INADDR_ANY);
     saddr.sin_port = htons(port);
 
-    int bind_ret = bind(sfd,
-                        reinterpret_cast<struct sockaddr *>(&saddr),
-                        sizeof(saddr));
+    int bind_ret = bind(
+      sfd,
+      reinterpret_cast<struct sockaddr *>(&saddr),
+      sizeof(saddr));
     if (bind_ret < 0) {
       throw std::runtime_error("Failed to socket to address");
     }

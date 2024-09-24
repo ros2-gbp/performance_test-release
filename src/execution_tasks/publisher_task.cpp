@@ -14,11 +14,10 @@
 
 #include "performance_test/execution_tasks/publisher_task.hpp"
 
-#include <memory>
 #include <thread>
-#include <utility>
 
 #include "performance_test/experiment_configuration/experiment_configuration.hpp"
+#include "performance_test/experiment_execution/pub_sub_factory.hpp"
 #include "performance_test/experiment_metrics/publisher_stats.hpp"
 #include "performance_test/plugin/publisher.hpp"
 #include "performance_test/utilities/memory_checker.hpp"
@@ -29,14 +28,18 @@ namespace performance_test
 
 PublisherTask::PublisherTask(
   const ExperimentConfiguration & ec,
-  PublisherStats & stats,
-  std::unique_ptr<Publisher> && pub)
+  PublisherStats & stats)
 : m_ec(ec),
   m_stats(stats),
-  m_pub(std::move(pub)),
+  m_pub(PubSubFactory::get().create_publisher(ec)),
   m_time_between_publish(ec.period_ns()),
   m_loop_counter(0),
   m_memory_checker(ec) {}
+
+void PublisherTask::prepare()
+{
+  m_pub->prepare();
+}
 
 void PublisherTask::run()
 {
@@ -44,9 +47,10 @@ void PublisherTask::run()
     m_first_run = perf_clock::now();
   }
 
-  std::this_thread::sleep_until(m_first_run + m_time_between_publish * m_loop_counter++);
+  perf_clock::time_point next_run = m_first_run + m_time_between_publish * m_loop_counter++;
+  std::this_thread::sleep_until(next_run);
 
-  if (m_ec.is_zero_copy_transfer) {
+  if (m_ec.use_loaned_samples) {
     m_pub->publish_loaned(m_timestamp_provider, m_stats.next_sample_id());
   } else {
     m_pub->publish_copy(m_timestamp_provider, m_stats.next_sample_id());

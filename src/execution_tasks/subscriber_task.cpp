@@ -14,10 +14,8 @@
 
 #include "performance_test/execution_tasks/subscriber_task.hpp"
 
-#include <memory>
-#include <utility>
-
 #include "performance_test/experiment_configuration/experiment_configuration.hpp"
+#include "performance_test/experiment_execution/pub_sub_factory.hpp"
 #include "performance_test/experiment_metrics/subscriber_stats.hpp"
 #include "performance_test/plugin/subscriber.hpp"
 
@@ -26,11 +24,15 @@ namespace performance_test
 
 SubscriberTask::SubscriberTask(
   const ExperimentConfiguration & ec,
-  SubscriberStats & stats,
-  std::unique_ptr<Subscriber> && sub)
+  SubscriberStats & stats)
 : m_stats(stats),
-  m_sub(std::move(sub)),
+  m_sub(PubSubFactory::get().create_subscriber(ec)),
   m_memory_checker(ec) {}
+
+void SubscriberTask::prepare()
+{
+  m_sub->prepare();
+}
 
 void SubscriberTask::run()
 {

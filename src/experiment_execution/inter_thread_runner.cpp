@@ -14,6 +14,9 @@
 
 #include "performance_test/experiment_execution/inter_thread_runner.hpp"
 
+#include <exception>
+#include <iostream>
+
 #include "performance_test/experiment_configuration/experiment_configuration.hpp"
 #include "performance_test/experiment_execution/data_entity_runner.hpp"
 
@@ -37,8 +40,13 @@ void InterThreadRunner::run_pubs_and_subs()
   for (auto & sub : m_subs) {
     m_thread_pool.emplace_back(
       [&sub, this]() {
-        while (m_running) {
-          sub->run();
+        try {
+          sub->prepare();
+          while (m_running) {
+            sub->run();
+          }
+        } catch (std::exception & e) {
+          std::cerr << e.what() << std::endl;
         }
       });
   }
@@ -46,8 +54,13 @@ void InterThreadRunner::run_pubs_and_subs()
   for (auto & pub : m_pubs) {
     m_thread_pool.emplace_back(
       [&pub, this]() {
-        while (m_running) {
-          pub->run();
+        try {
+          pub->prepare();
+          while (m_running) {
+            pub->run();
+          }
+        } catch (std::exception & e) {
+          std::cerr << e.what() << std::endl;
         }
       });
   }
