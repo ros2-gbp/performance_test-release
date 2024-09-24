@@ -17,6 +17,8 @@
 
 #include <cstdint>
 
+#include "performance_test/experiment_configuration/experiment_configuration.hpp"
+#include "performance_test/utilities/message_initializer.hpp"
 #include "performance_test/utilities/msg_traits.hpp"
 #include "performance_test/utilities/timestamp_provider.hpp"
 
@@ -26,7 +28,17 @@ namespace performance_test
 class Publisher
 {
 public:
+  explicit Publisher(const ExperimentConfiguration & ec)
+  : m_ec(ec), m_message_initializer(ec) {}
+
   virtual ~Publisher() = default;
+
+  /// @brief Prepare for communication
+  /// This is called once, after all Publishers and Subscribers
+  /// are created, and before any messages are sent.
+  /// This is a good place to put blocking operations that do not belong in
+  /// the constructor, such as participant discovery.
+  virtual void prepare() {}
 
   virtual void publish_copy(
     const TimestampProvider & timestamp_provider,
@@ -37,18 +49,20 @@ public:
     std::uint64_t sample_id) = 0;
 
 protected:
+  const ExperimentConfiguration & m_ec;
+
   template<typename T>
   inline void init_msg(
     T & msg,
     const TimestampProvider & timestamp_provider,
     std::uint64_t sample_id)
   {
-    MsgTraits::ensure_fixed_size(msg);
-    msg.id = sample_id;
-    msg.time = timestamp_provider.get();
+    m_message_initializer.init_msg(msg, timestamp_provider, sample_id);
   }
-};
 
+private:
+  MessageInitializer m_message_initializer;
+};
 }  // namespace performance_test
 
 #endif  // PERFORMANCE_TEST__PLUGIN__PUBLISHER_HPP_
