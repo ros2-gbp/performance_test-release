@@ -1,13 +1,11 @@
 module performance_test {
   module msg {
-    module __plugin__ {
-      struct UnboundedString {
-        string unbounded_string;
+    struct UnboundedString {
+      string unbounded_string;
 
-        long long time;
+      long long time;
 
-        unsigned long long id;
-      };
-    }; // __plugin__
+      unsigned long long id;
+    };
   }; // msg
 }; // performance_test

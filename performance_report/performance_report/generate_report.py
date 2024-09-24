@@ -13,27 +13,31 @@
 # limitations under the License.
 
 import os
-import yaml
+import sys
 
 from bokeh.embed import components
 import bokeh.util.version
-
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from .figures import generateFigure
-from .logs import getDatasets, coerce_to_list
-from .utils import PerfArgParser
+
+from performance_report.figures import generateFigure
+from performance_report.logs import coerce_to_list, getDatasets
+from performance_report.utils import PerfArgParser
+
+import yaml
 
 
 def generateReports(report_cfg_file, log_dir):
     cfg_dir, _ = os.path.split(report_cfg_file)
     html_figures = {}
-    with open(report_cfg_file, "r") as f:
+    missing_dataset = 0
+    with open(report_cfg_file, 'r') as f:
         reports_cfg = yaml.load(f, Loader=yaml.FullLoader)
-        datasets = getDatasets(reports_cfg["datasets"], log_dir)
+        datasets = getDatasets(reports_cfg['datasets'], log_dir)
         try:
             for report_name, report_cfg in reports_cfg['reports'].items():
                 for fig in report_cfg['figures']:
-                    plot = generateFigure(fig, datasets)
+                    plot, missing_dataset_num = generateFigure(fig, datasets)
+                    missing_dataset += missing_dataset_num
                     script, div = components(plot)
                     html_figures[fig['name']] = script + div
                 # add current bokeh CDN version to template variables
@@ -50,26 +54,46 @@ def generateReports(report_cfg_file, log_dir):
                     # output should match input file extension to support .md and .html reports
                     template_file_extension = template_file.split('.')[-1]
                     report_title = report_cfg['report_title']
-                    output = template.render(html_figures, title=report_title)
+                    output = template.render(html_figures, title=report_title, env=os.environ)
+
+                    # This is a workaround for a bug in bokeh:
+                    # https://github.com/bokeh/bokeh/issues/12414
+                    # The indentation must be correct if you wish to render a
+                    # plot in a markdown file, and then convert that markdown
+                    # file to html using python-markdown.
+                    output = output.replace(
+                        '    <script type="text/javascript">',
+                        '<script type="text/javascript">')
+                    output = output.replace(
+                        '        (function() {',
+                        '(function() {')
+                    output = output.replace(
+                        '    </script>',
+                        '</script>')
+
                     output_file = \
                         os.path.join(log_dir, report_name + '.' + template_file_extension)
                     with open(output_file, 'w') as result:
                         result.write(output)
-        except KeyError:
-            print("Oops, something is wrong with the provided"
-                  "report configuration file....exiting")
+        except KeyError as e:
+            print(e)
+            print('Oops, something is wrong with the provided'
+                  'report configuration file....exiting')
+    return missing_dataset
 
 
 def main():
     parser = PerfArgParser()
     parser.init_args()
     args = parser.parse_args()
-    log_dir = getattr(args, "log_dir")
-    report_cfg_files = getattr(args, "configs")
+    log_dir = getattr(args, 'log_dir')
+    report_cfg_files = getattr(args, 'configs')
+    missing_dataset_num = 0
 
     for report_cfg_file in report_cfg_files:
-        generateReports(report_cfg_file, log_dir)
+        missing_dataset_num += generateReports(report_cfg_file, log_dir)
+    sys.exit(missing_dataset_num)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

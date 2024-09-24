@@ -1,4 +1,4 @@
-// Copyright 2021 Apex.AI, Inc.
+// Copyright 2021-2024 Apex.AI, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef EXPERIMENT_CONFIGURATION__MESSAGES_HPP_
-#define EXPERIMENT_CONFIGURATION__MESSAGES_HPP_
+#ifndef PERFORMANCE_TEST__GENERATED_MESSAGES__MESSAGES_HPP_
+#define PERFORMANCE_TEST__GENERATED_MESSAGES__MESSAGES_HPP_
 
-#include <performance_test/for_each.hpp>
+#include <performance_test/utilities/for_each.hpp>
 
 @CMAKE_MESSAGE_INCLUDE_STATEMENTS@
 
@@ -45,4 +45,4 @@ inline std::vector<std::string> supported_msg_names()
 }
 }
 
-#endif  // EXPERIMENT_CONFIGURATION__MESSAGES_HPP_
+#endif  // PERFORMANCE_TEST__GENERATED_MESSAGES__MESSAGES_HPP_

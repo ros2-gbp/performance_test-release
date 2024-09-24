@@ -2,7 +2,11 @@
 # docker run -it --shm-size 2G performance_test_iceoryx bash
 # ros2 run performance_test perf_test -c iceoryx --msg Array1k --print-to-console
 
-FROM osrf/ros:rolling-desktop
+ARG BASE_IMAGE=osrf/ros:rolling-desktop
+FROM $BASE_IMAGE
+
+ARG ROS_DISTRO=rolling
+ARG ICEORYX_VERSION=5fe215eab267b0ad68bc5552aecd4b6e728e4c99
 
 SHELL ["/bin/bash", "-c"]
 
@@ -11,8 +15,10 @@ RUN apt-get update && \
 
 RUN mkdir -p iceoryx_ws/src && \
     cd $_ && \
-    git clone https://github.com/eclipse-iceoryx/iceoryx.git -b v2.0.0 --depth 1 && \
-    cd .. && \
+    git clone https://github.com/eclipse-iceoryx/iceoryx.git && \
+    cd iceoryx && \
+    git checkout $ICEORYX_VERSION && \
+    cd ../.. && \
     colcon build \
       --install-base /opt/iceoryx \
       --cmake-args \
@@ -21,7 +27,7 @@ RUN mkdir -p iceoryx_ws/src && \
 
 ADD . /perf_test_ws/src/performance_test
 
-RUN source /opt/ros/rolling/setup.bash && \
+RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
     source /opt/iceoryx/setup.bash && \
     cd /perf_test_ws && \
     colcon build \
@@ -30,10 +36,17 @@ RUN source /opt/ros/rolling/setup.bash && \
       --cmake-clean-cache \
       --cmake-args \
         -DCMAKE_BUILD_TYPE=Release \
-        -DPERFORMANCE_TEST_ICEORYX_ENABLED=ON
+        -DPERFORMANCE_TEST_PLUGIN=ICEORYX
 
-RUN echo "source /opt/ros/rolling/setup.bash" >> /root/.bashrc
-RUN echo "source /opt/performance_test/setup.bash" >> /root/.bashrc
+RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> /root/setup.bash
+RUN echo "source /opt/performance_test/setup.bash" >> /root/setup.bash
 
 ADD dockerfiles/roudi_config.toml /etc/iceoryx/roudi_config.toml
-RUN echo "iox-roudi -c /etc/iceoryx/roudi_config.toml &" >> /root/.bashrc
+RUN echo "iox-roudi -c /etc/iceoryx/roudi_config.toml &" >> /root/setup.bash
+
+RUN echo "source /root/setup.bash" >> /root/.bashrc
+
+# Install dependencies for running performance_report
+RUN apt-get update && \
+    apt-get install -y python3-pip && \
+    python3 -m pip install -U bokeh selenium pandas 

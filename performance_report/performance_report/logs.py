@@ -14,11 +14,15 @@
 
 import itertools
 import json
-import pandas as pd
+
 import os
 
+import pandas as pd
 
-from .utils import DatasetConfig, DEFAULT_TEST_NAME, ExperimentConfig, ThemeConfig
+from performance_report.utils import (DatasetConfig,
+                                      DEFAULT_TEST_NAME,
+                                      ExperimentConfig,
+                                      ThemeConfig)
 
 
 def parseLog(log_dir: str, test_name: str, experiment: ExperimentConfig):
@@ -31,24 +35,36 @@ def parseLog(log_dir: str, test_name: str, experiment: ExperimentConfig):
             try:
                 header = json.load(source)
             except json.decoder.JSONDecodeError:
-                print("Unable to decode JSON file " + filename)
-            dataframe = pd.json_normalize(header, 'analysis_results')
+                print('Unable to decode JSON file ' + filename)
+            if header:
+                dataframe = pd.json_normalize(header, 'analysis_results')
             if not dataframe.empty:
                 del header['analysis_results']
+
                 dataframe['latency_min_ms'] = dataframe['latency_min'] * 1000
                 dataframe['latency_max_ms'] = dataframe['latency_max'] * 1000
                 dataframe['latency_mean_ms'] = dataframe['latency_mean'] * 1000
                 dataframe['latency_variance_ms'] = dataframe['latency_variance'] * 1000 * 1000
                 dataframe['latency_M2_ms'] = dataframe['latency_M2'] * 1000 * 1000
+
+                dataframe['latency_min_us'] = dataframe['latency_min_ms'] * 1000
+                dataframe['latency_max_us'] = dataframe['latency_max_ms'] * 1000
+                dataframe['latency_mean_us'] = dataframe['latency_mean_ms'] * 1000
+                dataframe['latency_variance_us'] = dataframe['latency_variance_ms'] * 1000 * 1000
+                dataframe['latency_M2_us'] = dataframe['latency_M2_ms'] * 1000 * 1000
+
                 dataframe['cpu_usage_percent'] = dataframe['cpu_info_cpu_usage']
+
                 dataframe['ru_maxrss'] = dataframe['sys_tracker_ru_maxrss']
+                dataframe['ru_maxrss_mb'] = dataframe['ru_maxrss'] / 1000
+
                 dataframe['T_experiment'] = dataframe['experiment_start'] / 1000000000
                 # get experiement settings as dataframe
                 exp_df = experiment.as_dataframe()
                 exp_df = exp_df.loc[exp_df.index.repeat(len(dataframe.index))].reset_index()
                 dataframe = pd.concat([exp_df, dataframe], axis=1)
     except FileNotFoundError:
-        print("Results for experiment " + filename + " do not exist")
+        print('Results for experiment ' + filename + ' do not exist')
         raise FileNotFoundError()
     return header, dataframe
 
@@ -102,7 +118,7 @@ def getDatasets(yaml_datasets: dict, log_dir) -> dict:
                 pass
         # concate all dfs to one single one
         if not headers:
-            print(f"Skipping dataset {dataset_id} due to no available experiments")
+            print(f'Skipping dataset {dataset_id} due to no available experiments')
             continue
         results_df = pd.concat(dataframes, ignore_index=True)
         config_matrix = coerce_dict_vals_to_lists(dataset_details)

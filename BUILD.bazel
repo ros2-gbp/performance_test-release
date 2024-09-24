@@ -1,0 +1,8 @@
+# Copyright 2024 Apex.AI, Inc.
+# All rights reserved.
+
+label_flag(
+    name = "plugin_implementation",
+    build_setting_default = ":foo",
+    visibility = ["//visibility:public"],
+)

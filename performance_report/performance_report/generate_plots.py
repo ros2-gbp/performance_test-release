@@ -13,38 +13,39 @@
 # limitations under the License.
 
 import os
-import yaml
 
 from bokeh.io import export_png
 
-from .logs import getDatasets
-from .figures import generateFigure
-from .utils import PerfArgParser
+from performance_report.figures import generateFigure
+from performance_report.logs import getDatasets
+from performance_report.utils import PerfArgParser
+
+import yaml
 
 
 def generatePlots(plot_cfg_file, log_dir):
-    with open(plot_cfg_file, "r") as f:
+    with open(plot_cfg_file, 'r') as f:
         plots_cfg = yaml.load(f, Loader=yaml.FullLoader)
-        datasets = getDatasets(plots_cfg["datasets"], log_dir)
+        datasets = getDatasets(plots_cfg['datasets'], log_dir)
         try:
-            for plot in plots_cfg["plots"]:
+            for plot in plots_cfg['plots']:
                 fig = generateFigure(plot, datasets)
                 output_file = os.path.join(log_dir, plot['name'] + '.png')
                 export_png(fig, filename=output_file)
         except KeyError:
-            print("No msg_size_vs_latency_cpu plots specified in given trace yaml file")
+            print('No msg_size_vs_latency_cpu plots specified in given trace yaml file')
 
 
 def main():
     parser = PerfArgParser()
     parser.init_args()
     args = parser.parse_args()
-    log_dir = getattr(args, "log_dir")
-    plot_cfg_files = getattr(args, "configs")
+    log_dir = getattr(args, 'log_dir')
+    plot_cfg_files = getattr(args, 'configs')
 
     for plot_cfg_file in plot_cfg_files:
         generatePlots(plot_cfg_file, log_dir)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

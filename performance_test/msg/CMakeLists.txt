@@ -1,4 +1,4 @@
-# Copyright 2021 Apex.AI, Inc.
+# Copyright 2021-2024 Apex.AI, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,18 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(SUPPLEMENTAL_IDL_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/FixedHeader.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/FixedPointField.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/FixedTime.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/NavSatStatus.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/Point.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/Point32.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/Polygon.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/Vector3.idl
-)
+option(ENABLE_MSGS_ALL "Enable all messages" OFF)
+set(ENABLE_MSGS_DEFAULT ${ENABLE_MSGS_ALL})
 
-set(SUPPORTED_IDL_FILES
+option(
+  ENABLE_MSGS_ARRAY
+  "Enable messages that contain an array"
+  ON
+)
+if(ENABLE_MSGS_ARRAY)
+  list(APPEND SUPPORTED_IDL_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/Array32.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/Array64.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/Array128.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/Array256.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/Array512.idl
     ${CMAKE_CURRENT_SOURCE_DIR}/Array1k.idl
     ${CMAKE_CURRENT_SOURCE_DIR}/Array4k.idl
     ${CMAKE_CURRENT_SOURCE_DIR}/Array16k.idl
@@ -35,7 +38,50 @@ set(SUPPORTED_IDL_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Array2m.idl
     ${CMAKE_CURRENT_SOURCE_DIR}/Array4m.idl
     ${CMAKE_CURRENT_SOURCE_DIR}/Array8m.idl
+  )
+endif()
 
+option(
+  ENABLE_MSGS_STRUCT
+  "Enable messages that contain deeply-nested structs"
+  ON
+)
+if(ENABLE_MSGS_STRUCT)
+  list(APPEND SUPPORTED_IDL_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/Struct16.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/Struct256.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/Struct4k.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/Struct32k.idl
+  )
+endif()
+
+option(
+  ENABLE_MSGS_POINT_CLOUD
+  "Enable messages that contain a bounded sequence"
+  ON
+)
+if(ENABLE_MSGS_POINT_CLOUD)
+  list(APPEND SUPPLEMENTAL_IDL_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/FixedTime.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/FixedHeader.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/FixedPointField.idl
+  )
+  list(APPEND SUPPORTED_IDL_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud512k.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud1m.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud2m.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud4m.idl
+    ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud8m.idl
+  )
+endif()
+
+option(
+  ENABLE_MSGS_BOUNDED_SEQUENCE
+  "Enable messages that contain a bounded sequence"
+  ${ENABLE_MSGS_DEFAULT}
+)
+if(ENABLE_MSGS_BOUNDED_SEQUENCE)
+  list(APPEND SUPPORTED_IDL_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/BoundedSequence1k.idl
     ${CMAKE_CURRENT_SOURCE_DIR}/BoundedSequence4k.idl
     ${CMAKE_CURRENT_SOURCE_DIR}/BoundedSequence16k.idl
@@ -46,40 +92,19 @@ set(SUPPORTED_IDL_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/BoundedSequence2m.idl
     ${CMAKE_CURRENT_SOURCE_DIR}/BoundedSequence4m.idl
     ${CMAKE_CURRENT_SOURCE_DIR}/BoundedSequence8m.idl
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/Struct16.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/Struct256.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/Struct4k.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/Struct32k.idl
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud1m.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud2m.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud4m.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud8m.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud512k.idl
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/NavSatFix.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/RadarDetection.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/RadarTrack.idl
-    ${CMAKE_CURRENT_SOURCE_DIR}/Range.idl
-)
-
-# TODO(erik.snider) remove this when we reduce the template expansion in the communicator factory
-option(PERFORMANCE_TEST_MINIMAL_MESSAGES
-  "Include only a small subset of messages, for quick compilation of smoke tests" OFF)
-if(PERFORMANCE_TEST_MINIMAL_MESSAGES)
-  set(SUPPORTED_IDL_FILES
-      ${CMAKE_CURRENT_SOURCE_DIR}/Array16k.idl
-      ${CMAKE_CURRENT_SOURCE_DIR}/Array1m.idl
-
-      ${CMAKE_CURRENT_SOURCE_DIR}/BoundedSequence16k.idl
-      ${CMAKE_CURRENT_SOURCE_DIR}/BoundedSequence1m.idl
-
-      ${CMAKE_CURRENT_SOURCE_DIR}/PointCloud1m.idl
   )
 endif()
 
-if(NOT APEX_CERT)
+option(
+  ENABLE_MSGS_UNBOUNDED_SEQUENCE
+  "Enable messages that contain an unbounded sequence or string"
+  ${ENABLE_MSGS_DEFAULT}
+)
+if(ENABLE_MSGS_UNBOUNDED_SEQUENCE)
+  if(APEX_CERT)
+    message(FATAL_ERROR
+      "ENABLE_MSGS_UNBOUNDED_SEQUENCE is not compatible with APEX_CERT")
+  endif()
   list(APPEND SUPPORTED_IDL_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/UnboundedSequence.idl
     ${CMAKE_CURRENT_SOURCE_DIR}/UnboundedString.idl
@@ -143,15 +168,6 @@ if(PERFORMANCE_TEST_CYCLONEDDS_CXX_ENABLED)
   list(APPEND IDLGEN_LIBRARIES cyclonedds_cxx_idl)
 endif()
 
-if(PERFORMANCE_TEST_ICEORYX_ENABLED)
-  if(NOT PERFORMANCE_TEST_RCLCPP_ENABLED)
-    message(FATAL_ERROR
-    "The iceoryx plugin depends on the rosidl generated messages. "
-    "ROS2 must be installed in your environment, and "
-    "PERFORMANCE_TEST_RCLCPP_ENABLED must be ON.")
-  endif()
-endif()
-
 if(PERFORMANCE_TEST_OPENDDS_ENABLED)
   add_subdirectory(opendds)
   list(APPEND IDLGEN_INCLUDE_DIR ${OPENDDS_IDL_INCLUDE_DIR} ${PARENT_DDS_ROOT_INCLUDE})
@@ -171,6 +187,12 @@ if(PERFORMANCE_TEST_OPENDDS_ENABLED)
 endif()
 
 if(PERFORMANCE_TEST_RCLCPP_ENABLED OR PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED)
+  add_subdirectory(rclcpp)
+  set(ROSIDL_GEN_LIST ${ROSIDL_GEN_LIST} PARENT_SCOPE)
+endif()
+
+# iceoryx has no message generator, so performance_test uses ROS 2's
+if(PERFORMANCE_TEST_ICEORYX_ENABLED)
   add_subdirectory(rclcpp)
   set(ROSIDL_GEN_LIST ${ROSIDL_GEN_LIST} PARENT_SCOPE)
 endif()

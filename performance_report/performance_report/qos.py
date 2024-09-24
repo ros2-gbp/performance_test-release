@@ -15,33 +15,33 @@ from enum import Enum
 
 
 class DURABILITY(str, Enum):
-    VOLATILE = "VOLATILE"
-    TRANSIENT_LOCAL = "TRANSIENT_LOCAL"
+    VOLATILE = 'VOLATILE'
+    TRANSIENT_LOCAL = 'TRANSIENT_LOCAL'
 
     def __str__(self):
         if self == DURABILITY.VOLATILE:
-            return "V"
+            return 'V'
         if self == DURABILITY.TRANSIENT_LOCAL:
-            return "T"
+            return 'T'
 
 
 class HISTORY(str, Enum):
-    KEEP_ALL = "KEEP_ALL"
-    KEEP_LAST = "KEEP_LAST"
+    KEEP_ALL = 'KEEP_ALL'
+    KEEP_LAST = 'KEEP_LAST'
 
     def __str__(self):
         if self == HISTORY.KEEP_ALL:
-            return "A"
+            return 'A'
         if self == HISTORY.KEEP_LAST:
-            return "L"
+            return 'L'
 
 
 class RELIABILITY(str, Enum):
-    RELIABLE = "RELIABLE"
-    BEST_EFFORT = "BEST_EFFORT"
+    RELIABLE = 'RELIABLE'
+    BEST_EFFORT = 'BEST_EFFORT'
 
     def __str__(self):
         if self == RELIABILITY.RELIABLE:
-            return "R"
+            return 'R'
         if self == RELIABILITY.BEST_EFFORT:
-            return "B"
+            return 'B'
