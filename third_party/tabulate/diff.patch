@@ -1,0 +1,49 @@
+diff --git a/include/tabulate/column.hpp b/include/tabulate/column.hpp
+index 64fd042..f7c73d8 100644
+--- a/include/tabulate/column.hpp
++++ b/include/tabulate/column.hpp
+@@ -36,7 +36,6 @@ SOFTWARE.
+ #include <functional>
+ #include <iostream>
+ #include <memory>
+-#include <optional>
+ #include <string>
+ #include <tabulate/cell.hpp>
+ #include <tabulate/column_format.hpp>
+diff --git a/include/tabulate/utf8.hpp b/include/tabulate/utf8.hpp
+index 5298ba7..90ee4a0 100644
+--- a/include/tabulate/utf8.hpp
++++ b/include/tabulate/utf8.hpp
+@@ -45,6 +45,7 @@ SOFTWARE.
+ 
+ namespace tabulate {
+ 
++#if !defined(QNX)
+ #if defined(__unix__) || defined(__unix) || defined(__APPLE__)
+ inline int get_wcswidth(const std::string &string, const std::string &locale,
+                         size_t max_column_width) {
+@@ -69,12 +70,16 @@ inline int get_wcswidth(const std::string &string, const std::string &locale,
+   return result;
+ }
+ #endif
++#endif
+ 
+ inline size_t get_sequence_length(const std::string &text, const std::string &locale,
+                                   bool is_multi_byte_character_support_enabled) {
++#if !defined(QNX)
+   if (!is_multi_byte_character_support_enabled)
++#endif
+     return text.length();
+ 
++#if !defined(QNX)
+ #if defined(_WIN32) || defined(_WIN64)
+   return (text.length() - std::count_if(text.begin(), text.end(),
+                                         [](char c) -> bool { return (c & 0xC0) == 0x80; }));
+@@ -86,6 +91,7 @@ inline size_t get_sequence_length(const std::string &text, const std::string &lo
+     return (text.length() - std::count_if(text.begin(), text.end(),
+                                           [](char c) -> bool { return (c & 0xC0) == 0x80; }));
+ #endif
++#endif
+ }
+ 
+ } // namespace tabulate

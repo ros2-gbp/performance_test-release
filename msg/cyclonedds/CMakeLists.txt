@@ -1,4 +1,4 @@
-# Copyright 2017 Apex.AI, Inc.
+# Copyright 2017-2024 Apex.AI, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,10 +27,10 @@ foreach(idl ${IDL_FILES})
   string(REGEX REPLACE "\\.idl" "" basename ${filename})
 
   file(READ ${idl} filedata)
-  string(REGEX REPLACE "__plugin__" "CycloneDDSGen" filedata "${filedata}")
+  string(REGEX REPLACE "performance_test/msg/" "" filedata "${filedata}")
   file(WRITE ${IDL_GEN_ROOT}/${filename} "${filedata}")
   file(APPEND ${IDL_GEN_ROOT}/${filename}
-    "#pragma keylist performance_test::msg::CycloneDDSGen::${basename}\n")
+    "#pragma keylist performance_test::msg::${basename}\n")
 
 
   set(IDL_GEN_C ${IDL_GEN_ROOT}/${basename}.c)
