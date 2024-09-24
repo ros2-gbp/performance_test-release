@@ -11,10 +11,10 @@ load("//:setup.bzl", "setup_repositories")
 
 setup_repositories()
 
-load("//performance_report/third_party/python:parse_pip.bzl", "parse_pip")
+load("//third_party/python:parse_pip.bzl", "parse_pip")
 
 parse_pip()
 
-load("//performance_report/third_party/python:install_pip.bzl", "install_pip")
+load("//third_party/python:install_pip.bzl", "install_pip")
 
 install_pip()

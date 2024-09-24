@@ -29,12 +29,12 @@ class RoundTripRelayTask : public MessageReceivedListener
 {
 public:
   RoundTripRelayTask(
-    const ExperimentConfiguration & ec,
-    std::unique_ptr<Publisher> && pub,
-    std::unique_ptr<Subscriber> && sub);
+    const ExperimentConfiguration & ec);
 
   RoundTripRelayTask & operator=(const RoundTripRelayTask &) = delete;
   RoundTripRelayTask(const RoundTripRelayTask &) = delete;
+
+  void prepare();
 
   void run();
 

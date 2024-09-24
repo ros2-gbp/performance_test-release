@@ -110,7 +110,7 @@ def create_layout(header, dataframe):
         'quickrefs': [
             create_kv(header, 'Logfile name'),
             create_kv(header, 'Experiment id'),
-            create_kv(header, 'Communication mean'),
+            create_kv(header, 'Communicator'),
         ],
         'figures': generate_figures(
             xaxis,

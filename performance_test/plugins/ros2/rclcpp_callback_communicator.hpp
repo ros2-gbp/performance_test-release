@@ -43,6 +43,10 @@ public:
         [this](const typename DataType::SharedPtr data) {this->callback(data);}))
   {
     m_executor.add_node(this->m_node);
+  }
+
+  void prepare() override
+  {
 #ifdef PERFORMANCE_TEST_APEX_OS_POLLING_SUBSCRIPTION_ENABLED
     if (ec.expected_num_pubs > 0) {
       m_subscription->wait_for_matched(

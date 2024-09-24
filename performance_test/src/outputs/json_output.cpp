@@ -90,7 +90,9 @@ void JsonOutput::write(const ExperimentConfiguration & ec)
   write("number_of_subscribers", ec.number_of_subscribers);
   write("check_memory", ec.check_memory);
   write("with_security", ec.with_security);
-  write("is_zero_copy_transfer", ec.is_zero_copy_transfer);
+  write("use_shared_memory", ec.use_shared_memory);
+  write("use_loaned_samples", ec.use_loaned_samples);
+  write("is_zero_copy_transfer", ec.use_loaned_samples);
   write("roundtrip_mode", to_string(ec.roundtrip_mode));
   write("is_rt_init_required", ec.rt_config.is_rt_init_required());
   for (const auto & kvp : PluginSingleton::get()->extra_log_info()) {

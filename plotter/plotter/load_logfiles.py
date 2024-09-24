@@ -60,7 +60,7 @@ def load_logfile_json(filename):
         header['QOS'] = qos_rendered
         header['Logfile name'] = filename
         header['Experiment id'] = header['id']
-        header['Communication mean'] = header['com_mean_str']
+        header['Communicator'] = header['com_mean_str']
         header['Performance Test Version'] = header['perf_test_version']
         header['Publishing rate'] = header['rate']
         header['Topic name'] = header['topic_name']
