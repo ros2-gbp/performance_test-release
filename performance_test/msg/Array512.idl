@@ -1,0 +1,15 @@
+module performance_test {
+  module msg {
+    // 8 bytes for time
+    // 8 bytes for id
+    // 512 - 16 = 496
+    typedef octet octet__512[496];
+    struct Array512 {
+      octet__512 array;
+
+      long long time;
+
+      unsigned long long id;
+    };
+  }; // msg
+}; // performance_test

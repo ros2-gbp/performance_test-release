@@ -1,4 +1,4 @@
-// Copyright 2017 Apex.AI, Inc.
+// Copyright 2017-2024 Apex.AI, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "qos_abstraction.hpp"
+#include "performance_test/experiment_configuration/qos_abstraction.hpp"
 
 #include <string>
 
@@ -73,8 +73,40 @@ std::ostream & operator<<(std::ostream & stream, const QOSAbstraction e)
          "Reliability: " << e.reliability <<
          " Durability: " << e.durability <<
          " History kind: " << e.history_kind <<
-         " History depth: " << e.history_depth <<
-         " Sync. pub/sub: " << e.sync_pubsub;
+         " History depth: " << e.history_depth;
+}
+
+QOSAbstraction::Reliability qos_reliability_from_string(const std::string & s)
+{
+  if (s == "RELIABLE") {
+    return QOSAbstraction::Reliability::RELIABLE;
+  }
+  if (s == "BEST_EFFORT") {
+    return QOSAbstraction::Reliability::BEST_EFFORT;
+  }
+  throw std::invalid_argument("Invalid QOS reliability string!");
+}
+
+QOSAbstraction::Durability qos_durability_from_string(const std::string & s)
+{
+  if (s == "VOLATILE") {
+    return QOSAbstraction::Durability::VOLATILE;
+  }
+  if (s == "TRANSIENT_LOCAL") {
+    return QOSAbstraction::Durability::TRANSIENT_LOCAL;
+  }
+  throw std::invalid_argument("Invalid QOS durability string!");
+}
+
+QOSAbstraction::HistoryKind qos_history_kind_from_string(const std::string & s)
+{
+  if (s == "KEEP_LAST") {
+    return QOSAbstraction::HistoryKind::KEEP_LAST;
+  }
+  if (s == "KEEP_ALL") {
+    return QOSAbstraction::HistoryKind::KEEP_ALL;
+  }
+  throw std::invalid_argument("Invalid QOS history string!");
 }
 
 }  // namespace performance_test

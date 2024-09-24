@@ -1,0 +1,92 @@
+diff --git a/sole.hpp b/sole.hpp
+index cd132aa..c584be8 100644
+--- a/sole.hpp
++++ b/sole.hpp
+@@ -169,6 +169,12 @@ namespace std {
+ #   include <sys/time.h>
+ #   include <unistd.h>
+ #   define $linux $yes
++#elif defined(__QNX__)
++#   include <sys/socket.h>
++#   include <net/if_dl.h>
++#   include <ifaddrs.h>
++#   include <unistd.h>
++#   define $qnx $yes
+ #else //elif defined(__unix__)
+ #   if defined(__VMS)
+ #      include <ioctl.h>
+@@ -230,6 +235,13 @@ namespace std {
+ #define $lelse   $yes
+ #endif
+ 
++#ifdef  $qnx
++#define $qnxelse $no
++#else
++#define $qnx     $no
++#define $qnxelse $yes
++#endif
++
+ #ifdef  $unix
+ #define $uelse   $no
+ #else
+@@ -439,7 +451,7 @@ namespace sole {
+             return 0;
+         }
+     )
+-    $lelse( $belse( // if not linux, if not bsd... valid for apple/win32
++    $lelse( $belse( $qnxelse( // if not linux, if not bsd... valid for apple/win32
+         inline int clock_gettime( int /*clk_id*/, struct timespec* t ) {
+             struct timeval now;
+             int rv = gettimeofday(&now, NULL);
+@@ -448,7 +460,7 @@ namespace sole {
+             t->tv_nsec = now.tv_usec * 1000;
+             return 0;
+         }
+-    ))
++    )))
+ 
+     //////////////////////////////////////////////////////////////////////////////////////
+     // Timestamp and MAC interfaces
+@@ -595,6 +607,42 @@ namespace sole {
+         return true;
+     })
+ 
++    $qnx({
++        struct ifaddrs *ifaphead;
++        unsigned char * if_mac;
++        int found = 0;
++        struct ifaddrs *ifap;
++        struct sockaddr_dl *sdl = NULL;
++
++        if (getifaddrs(&ifaphead) != 0)
++        {
++            return $no("get_if_name: getifaddrs() failed") false;
++        }
++
++        for (ifap = ifaphead; ifap && !found; ifap = ifap->ifa_next)
++        {
++            if ((ifap->ifa_addr->sa_family == AF_LINK))
++            {
++                found = 1;
++                sdl = (struct sockaddr_dl *)ifap->ifa_addr;
++                if (sdl)
++                {
++                    _node.resize(sdl->sdl_alen);
++                    std::memcpy(_node.data(), LLADDR(sdl), _node.size());
++                }
++            }
++        }
++        if(ifaphead)
++        {
++            freeifaddrs(ifaphead);
++        }
++        if (!found)
++        {
++            return $no("Failed to find an interface failed") false;
++        }
++        return true;
++    })
++
+     $unix({
+         char name[HOST_NAME_MAX];
+         if (gethostname(name, sizeof(name)))

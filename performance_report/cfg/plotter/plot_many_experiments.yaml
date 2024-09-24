@@ -1,7 +1,7 @@
 ---
 datasets:
   # default for each dataset:
-  #   name: ''
+  #    name: ''
   #    theme:
   #      color: '#0000ff'
   #      marker:
@@ -15,7 +15,9 @@ datasets:
   #    test_name: experiments
   #    experiments:
   #      - com_mean: rclcpp-single-threaded-executor
-  #        transport: INTRA
+  #        process_configuration: INTRA_PROCESS
+  #        execution_strategy: INTER_THREAD
+  #        sample_transport: BY_COPY
   #        msg: Array1k
   #        pubs: 1
   #        subs: 1
@@ -29,7 +31,9 @@ datasets:
     theme:
       color: '#0000ff'
     experiments:
-      - transport: INTRA
+      - process_configuration: INTRA_PROCESS
+        execution_strategy: INTER_THREAD
+        sample_transport: BY_COPY
         msg:
           - Array1k
           - Array4k
@@ -43,7 +47,9 @@ datasets:
     theme:
       color: '#00ff00'
     experiments:
-      - transport: SHMEM
+      - process_configuration: INTER_PROCESS
+        execution_strategy: INTER_THREAD
+        sample_transport: SHARED_MEMORY
         msg:
           - Array1k
           - Array4k
@@ -57,7 +63,9 @@ datasets:
     theme:
       color: '#ff0000'
     experiments:
-      - transport: ZERO_COPY
+      - process_configuration: INTER_PROCESS
+        execution_strategy: INTER_THREAD
+        sample_transport: LOANED_SAMPLES
         msg:
           - Array1k
           - Array4k
@@ -71,7 +79,9 @@ datasets:
     theme:
       color: '#bf0000'
     experiments:
-      - transport: ZERO_COPY
+      - process_configuration: INTER_PROCESS
+        execution_strategy: INTER_THREAD
+        sample_transport: LOANED_SAMPLES
         msg:
           - Array1k
           - Array4k
@@ -86,7 +96,9 @@ datasets:
     theme:
       color: '#7f0000'
     experiments:
-      - transport: ZERO_COPY
+      - process_configuration: INTER_PROCESS
+        execution_strategy: INTER_THREAD
+        sample_transport: LOANED_SAMPLES
         msg:
           - Array1k
           - Array4k
@@ -101,7 +113,9 @@ datasets:
     theme:
       color: '#ff0000'
     experiments:
-      - transport: INTRA
+      - process_configuration: INTRA_PROCESS
+        execution_strategy: INTER_THREAD
+        sample_transport: BY_COPY
         msg: Array1m
         subs: 1
         rate: 100
@@ -110,7 +124,9 @@ datasets:
     theme:
       color: '#00ff00'
     experiments:
-      - transport: SHMEM
+      - process_configuration: INTER_PROCESS
+        execution_strategy: INTER_THREAD
+        sample_transport: SHARED_MEMORY
         msg: Array1m
         subs: 1
         rate: 100
@@ -119,13 +135,15 @@ datasets:
     theme:
       color: '#0000ff'
     experiments:
-      - transport: ZERO_COPY
+      - process_configuration: INTER_PROCESS
+        execution_strategy: INTER_THREAD
+        sample_transport: LOANED_SAMPLES
         msg: Array1m
         subs: 1
         rate: 100
 plots:
-  - name: compare_apexos_transport
-    title: Comparing different Apex.OS Transports
+  - name: compare_transport
+    title: Comparing different Transports
     x_axis_label: Time (seconds)
     y_axis_label: Latency (ms)
     x_range: T_experiment
@@ -138,8 +156,8 @@ plots:
       - intra_array1m_100_1_1
       - shmem_array1m_100_1_1
       - zc_array1m_100_1_1
-  - name: compare_apexos_transport_cpu_usage
-    title: Comparing different Apex.OS Transports CPU Usage (%)
+  - name: compare_transport_cpu_usage
+    title: Comparing different Transports CPU Usage (%)
     x_axis_label: Time (seconds)
     y_axis_label: CPU Usage (%)
     x_range: T_experiment
@@ -152,7 +170,7 @@ plots:
       - intra_array1m_100_1_1
       - shmem_array1m_100_1_1
       - zc_array1m_100_1_1
-  - name: compare_apexos_msg_size
+  - name: compare_msg_size
     title: Comparing Latency over Message Size
     x_axis_label: Message Size
     y_axis_label: Latency (ms)
@@ -166,7 +184,7 @@ plots:
       - intra_1_subs
       - shmem_1_subs
       - zc_1_subs
-  - name: compare_apexos_num_subs
+  - name: compare_num_subs
     title: Comparing Latency over Number of Subscribers with Zero Copy
     x_axis_label: Number of Subscribers
     y_axis_label: Latency (ms)

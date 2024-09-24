@@ -1,7 +1,7 @@
 ---
 datasets:
   # default for each dataset:
-  #   name: ''
+  #    name: ''
   #    theme:
   #      color: '#0000ff'
   #      marker:
@@ -15,7 +15,9 @@ datasets:
   #    test_name: experiments
   #    experiments:
   #      - com_mean: rclcpp-single-threaded-executor
-  #        transport: INTRA
+  #        process_configuration: INTRA_PROCESS
+  #        execution_strategy: INTER_THREAD
+  #        sample_transport: BY_COPY
   #        msg: Array1k
   #        pubs: 1
   #        subs: 1
@@ -38,7 +40,7 @@ reports:
       - ./single.md
     figures:
       - name: figure_single
-        title: Comparing different Apex.OS Transports
+        title: Comparing different Transports
         x_axis_label: Time (seconds)
         y_axis_label: Latency (ms)
         x_range: T_experiment

@@ -1,14 +1,12 @@
 module performance_test {
   module msg {
-    module __plugin__ {
-      typedef sequence<octet> unbounded__octet;
-      struct UnboundedSequence {
-        unbounded__octet unbounded_sequence;
+    typedef sequence<octet> unbounded__octet;
+    struct UnboundedSequence {
+      unbounded__octet unbounded_sequence;
 
-        long long time;
+      long long time;
 
-        unsigned long long id;
-      };
-    }; // __plugin__
+      unsigned long long id;
+    };
   }; // msg
 }; // performance_test
