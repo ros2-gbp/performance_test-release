@@ -34,7 +34,7 @@ IntraThreadRunner::IntraThreadRunner(const ExperimentConfiguration & ec)
     throw std::invalid_argument(
             "Intra-thread execution requires at least one subscriber.");
   }
-  if (!ec.is_zero_copy_transfer) {
+  if (!ec.use_loaned_samples) {
     throw std::invalid_argument(
             "Intra-thread execution only works with loaned messages (zero copy).");
   }
@@ -53,6 +53,12 @@ void IntraThreadRunner::run_pubs_and_subs()
 {
   m_thread = std::make_unique<std::thread>(
     [this]() {
+      for (auto & pub : m_pubs) {
+        pub->prepare();
+      }
+      for (auto & sub : m_subs) {
+        sub->prepare();
+      }
       while (m_running) {
         for (auto & pub : m_pubs) {
           pub->run();

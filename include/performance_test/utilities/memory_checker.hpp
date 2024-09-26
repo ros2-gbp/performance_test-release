@@ -32,7 +32,9 @@ public:
   void enable_memory_tools_checker();
 
 private:
+#ifdef PERFORMANCE_TEST_MEMORYTOOLS_ENABLED
   bool m_memory_tools_on;
+#endif
 
   void malloc_test_function(const std::string & str);
 

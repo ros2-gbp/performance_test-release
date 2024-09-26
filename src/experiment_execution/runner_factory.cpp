@@ -29,7 +29,7 @@ RunnerFactory::RunnerFactory()
 {
   register_runner(
     "INTER_THREAD",
-    [](const ExperimentConfiguration & ec)->std::unique_ptr<Runner> {
+    [](const ExperimentConfiguration & ec) -> std::unique_ptr<Runner> {
       switch (ec.roundtrip_mode) {
         case RoundTripMode::NONE:
           return std::make_unique<InterThreadRunner>(ec);
@@ -43,7 +43,7 @@ RunnerFactory::RunnerFactory()
     });
   register_runner(
     "INTRA_THREAD",
-    [](const ExperimentConfiguration & ec)->std::unique_ptr<Runner> {
+    [](const ExperimentConfiguration & ec) -> std::unique_ptr<Runner> {
       return std::make_unique<IntraThreadRunner>(ec);
     });
 }

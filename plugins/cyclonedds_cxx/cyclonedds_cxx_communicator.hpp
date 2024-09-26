@@ -88,7 +88,17 @@ public:
 
     // CycloneDDS-CXX has its own reference-counting mechanism
     if (m_cyclonedds_cxx_participant.is_nil()) {
-      m_cyclonedds_cxx_participant = dds::domain::DomainParticipant(ec.dds_domain_id);
+      ddsi_config config;
+      if (ec.use_shared_memory) {
+        config.enable_shm = true;
+      }
+      m_cyclonedds_cxx_participant = dds::domain::DomainParticipant(
+        ec.dds_domain_id,
+        dds::domain::qos::DomainParticipantQos(),
+        nullptr,
+        dds::core::status::StatusMask::none(),
+        config
+      );
     }
     return m_cyclonedds_cxx_participant;
   }
@@ -101,17 +111,19 @@ private:
 };
 
 template<class Msg>
-class CycloneDDSCXXPublisher : public Publisher {
+class CycloneDDSCXXPublisher : public Publisher
+{
 public:
   using DataType = typename Msg::CycloneDDSCXXType;
 
   explicit CycloneDDSCXXPublisher(const ExperimentConfiguration & ec)
-  : m_participant(CycloneDDSCXXResourceManager::get().cyclonedds_cxx_participant(ec)),
+  : Publisher(ec),
+    m_participant(CycloneDDSCXXResourceManager::get().cyclonedds_cxx_participant(ec)),
     m_publisher(m_participant),
     m_datawriter(make_cyclonedds_cxx_datawriter<DataType>(
         m_participant, m_publisher, ec))
   {
-    if (ec.is_zero_copy_transfer && !m_datawriter.delegate()->is_loan_supported()) {
+    if (ec.use_loaned_samples && !m_datawriter.delegate()->is_loan_supported()) {
       throw std::runtime_error("Zero-copy transfer is not supported.");
     }
   }
@@ -160,20 +172,11 @@ private:
 
     return dds::pub::DataWriter<DataType>(publisher, topic, dw_qos);
   }
-
-  void init_msg(
-    DataType & msg,
-    const TimestampProvider & timestamp_provider,
-    std::uint64_t sample_id)
-  {
-    MsgTraits::ensure_fixed_size(msg);
-    msg.id(sample_id);
-    msg.time(timestamp_provider.get());
-  }
 };
 
 template<class Msg>
-class CycloneDDSCXXSubscriber : public Subscriber {
+class CycloneDDSCXXSubscriber : public Subscriber
+{
 public:
   using DataType = typename Msg::CycloneDDSCXXType;
 

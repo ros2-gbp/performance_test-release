@@ -17,6 +17,7 @@
 
 #include <dds/dds.h>
 #include <dds/ddsc/dds_loan_api.h>
+#include <dds/ddsi/ddsi_config.h>
 
 #include <iostream>
 #include <mutex>
@@ -122,12 +123,17 @@ public:
   CycloneDDSResourceManager(CycloneDDSResourceManager const &) = delete;
   CycloneDDSResourceManager(CycloneDDSResourceManager &&) = delete;
   CycloneDDSResourceManager & operator=(CycloneDDSResourceManager const &) = delete;
-  CycloneDDSResourceManager &operator=(CycloneDDSResourceManager &&) = delete;
+  CycloneDDSResourceManager & operator=(CycloneDDSResourceManager &&) = delete;
 
-  dds_entity_t cyclonedds_participant(const ExperimentConfiguration &ec) const
+  dds_entity_t cyclonedds_participant(const ExperimentConfiguration & ec) const
   {
     std::lock_guard<std::mutex> lock(m_global_mutex);
     if (!m_cyclonedds_participant) {
+      if (ec.use_shared_memory) {
+        ddsi_config config;
+        config.enable_shm = true;
+        dds_create_domain_with_rawconfig(ec.dds_domain_id, &config);
+      }
       m_cyclonedds_participant = dds_create_participant(ec.dds_domain_id, nullptr, nullptr);
     }
     return m_cyclonedds_participant;
@@ -148,7 +154,8 @@ public:
   using DataType = typename Msg::CycloneDDSType;
 
   explicit CycloneDDSPublisher(const ExperimentConfiguration & ec)
-  : m_participant(CycloneDDSResourceManager::get().cyclonedds_participant(ec)),
+  : Publisher(ec),
+    m_participant(CycloneDDSResourceManager::get().cyclonedds_participant(ec)),
     m_datawriter(create_datawriter(ec, m_participant)) {}
 
   void publish_copy(
@@ -191,7 +198,7 @@ private:
   )
   {
     dds_qos_t * dw_qos = dds_create_qos();
-    if (ec.is_zero_copy_transfer) {
+    if (ec.use_shared_memory || ec.use_loaned_samples) {
       CycloneDDSIceoryxQOSAdapter qos_adapter(ec.qos);
       qos_adapter.apply(dw_qos);
     } else {
@@ -267,7 +274,7 @@ private:
   )
   {
     dds_qos_t * dw_qos = dds_create_qos();
-    if (ec.is_zero_copy_transfer) {
+    if (ec.use_shared_memory || ec.use_loaned_samples) {
       CycloneDDSIceoryxQOSAdapter qos_adapter(ec.qos);
       qos_adapter.apply(dw_qos);
     } else {
