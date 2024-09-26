@@ -18,17 +18,13 @@
 #include <memory>
 
 #include "performance_test/experiment_configuration/experiment_configuration.hpp"
-#include "performance_test/experiment_execution/pub_sub_factory.hpp"
 #include "performance_test/experiment_execution/runner.hpp"
 
 namespace performance_test
 {
 RoundTripRelayRunner::RoundTripRelayRunner(const ExperimentConfiguration & ec)
 : Runner(ec),
-  m_relay(
-    ec,
-    PubSubFactory::get().create_publisher(ec),
-    PubSubFactory::get().create_subscriber(ec))
+  m_relay(ec)
 {
   if (ec.number_of_publishers != 1) {
     throw std::invalid_argument(
@@ -38,9 +34,13 @@ RoundTripRelayRunner::RoundTripRelayRunner(const ExperimentConfiguration & ec)
     throw std::invalid_argument(
             "Round-trip relay requires exactly one subscriber.");
   }
-  if (ec.is_zero_copy_transfer) {
+  if (ec.use_shared_memory) {
     throw std::invalid_argument(
-            "Round-trip relay can not use loaned messages (zero copy).");
+            "Round-trip relay can not use shared memory.");
+  }
+  if (ec.use_loaned_samples) {
+    throw std::invalid_argument(
+            "Round-trip relay can not use loaned messages.");
   }
 }
 
@@ -53,6 +53,7 @@ void RoundTripRelayRunner::run_pubs_and_subs()
 {
   m_thread = std::make_unique<std::thread>(
     [this]() {
+      m_relay.prepare();
       while (m_running) {
         m_relay.run();
       }

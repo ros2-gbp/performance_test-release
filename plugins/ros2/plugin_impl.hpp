@@ -17,8 +17,10 @@
 
 #include "performance_test/plugin/plugin.hpp"
 
-#include <memory>
+#include <cstdlib>
+#include <fstream>
 #include <map>
+#include <memory>
 #include <string>
 
 #include <rclcpp/rclcpp.hpp>
@@ -54,6 +56,10 @@ public:
 
   void global_setup(const ExperimentConfiguration & ec) override
   {
+    if (ec.use_shared_memory) {
+      enable_shared_memory();
+    }
+
 #if defined(PERFORMANCE_TEST_ROS2_DASHING) || defined(PERFORMANCE_TEST_ROS2_ELOQUENT)
     rclcpp::contexts::default_context::get_global_default_context()->init(
       ec.argc, ec.argv, rclcpp::InitOptions{});
@@ -150,6 +156,61 @@ private:
            };
   }
 #endif
+
+  static void enable_shared_memory()
+  {
+    std::string rmw_implementation = rmw_get_implementation_identifier();
+    if (rmw_implementation == "rmw_cyclonedds_cpp") {
+      enable_shared_memory_cyclonedds();
+    } else if (rmw_implementation == "rmw_fastrtps_cpp") {
+      enable_shared_memory_fastrtps();
+    } else {
+      throw std::runtime_error("Shared memory is not supported for " + rmw_implementation);
+    }
+  }
+
+  static void enable_shared_memory_cyclonedds()
+  {
+    const std::string config_string =
+      "<CycloneDDS>\n"
+      "    <Domain>\n"
+      "        <SharedMemory>\n"
+      "            <Enable>true</Enable>\n"
+      "            <LogLevel>verbose</LogLevel>\n"
+      "        </SharedMemory>\n"
+      "    </Domain>\n"
+      "</CycloneDDS>\n";
+    setenv("CYCLONEDDS_URI", config_string.c_str(), 1);
+  }
+
+  static void enable_shared_memory_fastrtps()
+  {
+    const std::string config_string =
+      "<data_writer profile_name=\"topic_name\">\n"
+      "    <qos>\n"
+      "        <data_sharing>\n"
+      "            <kind>AUTOMATIC</kind>\n"
+      "        </data_sharing>\n"
+      "    </qos>\n"
+      "</data_writer>\n"
+      "<data_reader profile_name=\"topic_name\">\n"
+      "    <qos>\n"
+      "        <data_sharing>\n"
+      "            <kind>AUTOMATIC</kind>\n"
+      "        </data_sharing>\n"
+      "    </qos>\n"
+      "</data_reader>\n";
+    const std::string shmem_file_path = "/tmp/perf_test_shmem.xml";
+    std::ofstream temp_file(shmem_file_path, std::ios_base::app);
+    if (temp_file.is_open()) {
+      temp_file << config_string;
+      temp_file.close();
+    } else {
+      throw std::runtime_error("Failed to open " + shmem_file_path);
+    }
+    setenv("FASTDDS_DEFAULT_PROFILES_FILE", shmem_file_path.c_str(), 1);
+    setenv("RMW_FASTRTPS_USE_QOS_FROM_XML", "1", 1);
+  }
 };
 }  // namespace performance_test
 

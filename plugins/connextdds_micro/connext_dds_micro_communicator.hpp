@@ -93,7 +93,8 @@ private:
 };
 
 template<class Topic>
-class RTIMicroDDSTopicManager {
+class RTIMicroDDSTopicManager
+{
 public:
   static DDSTopic * register_topic(
     DDSDomainParticipant * m_participant,
@@ -294,7 +295,7 @@ public:
   using DataTypeSeq = typename DataType::Seq;
 
   explicit RTIMicroDDSPublisher(const ExperimentConfiguration & ec)
-  : m_ec(ec),
+  : Publisher(ec),
     m_participant(RTIMicroDDSResourceManager::get().connext_DDS_micro_participant(ec)),
     m_datawriter(nullptr),
     m_topic(RTIMicroDDSTopicManager<Topic>::register_topic(m_participant, m_ec))
@@ -419,8 +420,6 @@ private:
 
   /// Do nothing if PointField not present
   static void init_fields(...) {}
-
-  const ExperimentConfiguration & m_ec;
 
   DDSDomainParticipant * m_participant;
 
