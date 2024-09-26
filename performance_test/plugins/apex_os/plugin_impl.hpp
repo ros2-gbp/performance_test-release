@@ -21,9 +21,9 @@
 #include <map>
 #include <string>
 
-#include <cyclone_dds_vendor/dds.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rmw/rmw.h>
+#include <settings/construct.hpp>
 #include <settings/inspect.hpp>
 #include <settings/repository.hpp>
 
@@ -50,26 +50,31 @@ public:
       });
   }
 
-  void register_custom_runners(RunnerRegistry & runner_registry) override {
+  void register_custom_runners(RunnerRegistry & runner_registry) override
+  {
     runner_registry.register_runner(
       "APEX_SINGLE_EXECUTOR",
-      [](const ExperimentConfiguration & ec)->std::unique_ptr<Runner> {
-          return std::make_unique<ApexOsSingleExecutorRunner>(ec);
+      [](const ExperimentConfiguration & ec) -> std::unique_ptr<Runner> {
+        return std::make_unique<ApexOsSingleExecutorRunner>(ec);
       });
     runner_registry.register_runner(
       "APEX_EXECUTOR_PER_COMMUNICATOR",
-      [](const ExperimentConfiguration & ec)->std::unique_ptr<Runner> {
-          return std::make_unique<ApexOsExecutorPerCommunicatorRunner>(ec);
+      [](const ExperimentConfiguration & ec) -> std::unique_ptr<Runner> {
+        return std::make_unique<ApexOsExecutorPerCommunicatorRunner>(ec);
       });
     runner_registry.register_runner(
       "APEX_CHAIN",
-      [](const ExperimentConfiguration & ec)->std::unique_ptr<Runner> {
-          return std::make_unique<ApexOsSingleExecutorChainRunner>(ec);
+      [](const ExperimentConfiguration & ec) -> std::unique_ptr<Runner> {
+        return std::make_unique<ApexOsSingleExecutorChainRunner>(ec);
       });
   }
 
   void global_setup(const ExperimentConfiguration & ec) override
   {
+    if (ec.use_shared_memory) {
+      enable_shared_memory();
+    }
+
     rclcpp::init(ec.argc, ec.argv, rclcpp::InitOptions{}, false);
   }
 
@@ -77,13 +82,6 @@ public:
   {
     std::map<std::string, std::string> m;
     m["rmw_implementation"] = rmw_get_implementation_identifier();
-#ifdef DDSCXX_HAS_SHM
-    bool shm = apex::settings::inspect::get_or_default<bool>(
-        apex::settings::repository::get(), "domain/shared_memory/enable", false);
-#else
-    bool shm = false;
-#endif
-    m["is_shared_memory_transfer"] = shm ? "true" : "false";
     return m;
   }
 
@@ -122,6 +120,16 @@ private:
            {
              return std::make_unique<ApexOSPollingSubscriptionSubscriber<DataType>>(ec);
            };
+  }
+
+  static void enable_shared_memory()
+  {
+    using apex::settings::construct::dictionary;
+    using apex::settings::construct::entry;
+    using apex::settings::construct::make_dictionary;
+    dictionary d{entry(
+        "domain", make_dictionary(entry("shared_memory", make_dictionary(entry("enable", true)))))};
+    apex::settings::repository::set(d);
   }
 };
 }  // namespace performance_test

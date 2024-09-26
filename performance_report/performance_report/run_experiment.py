@@ -20,45 +20,9 @@ from performance_report.utils import (cliColors,
                                       colorPrint,
                                       create_dir,
                                       ExperimentConfig,
-                                      generate_shmem_file_xml,
-                                      generate_shmem_file_yml,
-                                      is_ros2_plugin,
                                       PerfArgParser)
 
 import yaml
-
-
-def prepare_for_shmem(cfg: ExperimentConfig, output_dir):
-    if cfg.sample_transport == 'SHARED_MEMORY' or cfg.sample_transport == 'LOANED_SAMPLES':
-
-        colorPrint('[Warning] RouDi is expected to already be running', cliColors.WARN)
-
-        if is_ros2_plugin(cfg.com_mean):
-            try:
-                from rclpy.utilities import get_rmw_implementation_identifier
-                if get_rmw_implementation_identifier() == 'rmw_cyclonedds_cpp':
-                    shmem_config_file = generate_shmem_file_xml(output_dir)
-                    os.environ['CYCLONEDDS_URI'] = shmem_config_file
-                else:
-                    print('Unsupported Middleware: ', get_rmw_implementation_identifier())
-            except ImportError:
-                print('WARNING: rclpy not found. Running with shared memory is unavailable.')
-        elif cfg.com_mean == 'ApexOSPollingSubscription':
-            shmem_config_file = generate_shmem_file_yml(output_dir)
-            os.environ['APEX_MIDDLEWARE_SETTINGS'] = shmem_config_file
-        elif cfg.com_mean == 'CycloneDDS' or cfg.com_mean == 'CycloneDDS-CXX':
-            shmem_config_file = generate_shmem_file_xml(output_dir)
-            os.environ['CYCLONEDDS_URI'] = shmem_config_file
-        elif cfg.com_mean == 'iceoryx':
-            pass
-        else:
-            pass
-
-
-def teardown_from_shmem(cfg: ExperimentConfig):
-    if cfg.sample_transport == 'SHARED_MEMORY' or cfg.sample_transport == 'LOANED_SAMPLES':
-        os.unsetenv('APEX_MIDDLEWARE_SETTINGS')
-        os.unsetenv('CYCLONEDDS_URI')
 
 
 def run_experiment(cfg: ExperimentConfig, perf_test_exe_cmd, output_dir, overwrite: bool):
@@ -71,7 +35,6 @@ def run_experiment(cfg: ExperimentConfig, perf_test_exe_cmd, output_dir, overwri
     else:
         colorPrint(f'Running experiment {cfg.log_file_name()}', cliColors.GREEN)
 
-    prepare_for_shmem(cfg, output_dir)
     if cfg.process_configuration == 'INTRA_PROCESS':
         cli_args = cfg.cli_args(output_dir)[0]
         os.system(perf_test_exe_cmd + cli_args)
@@ -80,7 +43,6 @@ def run_experiment(cfg: ExperimentConfig, perf_test_exe_cmd, output_dir, overwri
         os.system(perf_test_exe_cmd + cli_args_sub + ' &')
         time.sleep(1)
         os.system(perf_test_exe_cmd + cli_args_pub)
-    teardown_from_shmem(cfg)
 
 
 def run_experiments(files: 'list[str]', perf_test_exe_cmd, output_dir, overwrite: bool):

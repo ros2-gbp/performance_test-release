@@ -12,7 +12,7 @@ This package serves two purposes:
 Install the required dependencies:
 
 ```shell
-python3 -m pip install bokeh selenium pandas
+python3 -m pip install -r third_party/python/requirements.txt
 sudo apt-get install firefox-geckodriver
 ```
 

@@ -29,11 +29,12 @@ class SubscriberTask
 public:
   SubscriberTask(
     const ExperimentConfiguration & ec,
-    SubscriberStats & stats,
-    std::unique_ptr<Subscriber> && sub);
+    SubscriberStats & stats);
 
   SubscriberTask & operator=(const SubscriberTask &) = delete;
   SubscriberTask(const SubscriberTask &) = delete;
+
+  void prepare();
 
   void run();
 
