@@ -1,0 +1,65 @@
+# Copyright 2024 Apex.AI, Inc.
+# All rights reserved.
+
+load("@pip_deps//:requirements.bzl", "requirement")
+
+py_library(
+    name = "performance_report_lib",
+    srcs = [
+        "performance_report/__init__.py",
+        "performance_report/figures.py",
+        "performance_report/logs.py",
+        "performance_report/qos.py",
+        "performance_report/utils.py",
+    ],
+    imports = ["."],
+    deps = [
+        requirement("pandas"),
+        requirement("bokeh"),
+    ]
+)
+
+py_binary(
+    name = "commander",
+    srcs = ["performance_report/generate_experiment_commands.py"],
+    main = "performance_report/generate_experiment_commands.py",
+    imports = ["."],
+    deps = [
+        ":performance_report_lib",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "runner",
+    srcs = ["performance_report/run_experiment.py"],
+    main = "performance_report/run_experiment.py",
+    imports = ["."],
+    deps = [
+        ":performance_report_lib",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "plotter",
+    srcs = ["performance_report/generate_plots.py"],
+    main = "performance_report/generate_plots.py",
+    imports = ["."],
+    deps = [
+        ":performance_report_lib",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "reporter",
+    srcs = ["performance_report/generate_report.py"],
+    main = "performance_report/generate_report.py",
+    imports = ["."],
+    deps = [
+        ":performance_report_lib",
+        requirement("Jinja2"),
+    ],
+    visibility = ["//visibility:public"],
+)
