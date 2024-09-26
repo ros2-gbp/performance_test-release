@@ -45,13 +45,15 @@ int main(int argc, char ** argv)
 
   pt::ExitRequestHandler::get().setup();
 
-  auto r = pt::RunnerFactory::get().create_runner(ec);
+  {
+    auto r = pt::RunnerFactory::get().create_runner(ec);
 
-  if (ec.rt_config.is_rt_init_required()) {
-    pt::post_proc_rt_init();
+    if (ec.rt_config.is_rt_init_required()) {
+      pt::post_proc_rt_init();
+    }
+
+    r->run();
   }
-
-  r->run();
 
   pt::PluginSingleton::get()->global_teardown(ec);
 }
