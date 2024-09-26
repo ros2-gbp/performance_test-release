@@ -60,7 +60,8 @@ struct ExperimentConfiguration
   bool check_memory;
   RealTimeConfiguration rt_config;
   bool with_security;
-  bool is_zero_copy_transfer;
+  bool use_shared_memory;
+  bool use_loaned_samples;
   bool prevent_cpu_idle;
 
   RoundTripMode roundtrip_mode;

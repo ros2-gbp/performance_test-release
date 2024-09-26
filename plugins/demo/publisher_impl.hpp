@@ -31,6 +31,7 @@ class PublisherImpl : public Publisher
 {
 public:
   explicit PublisherImpl(const ExperimentConfiguration & ec)
+  : Publisher(ec)
   {
     // Create and configure the data writer, QoS settings, etc
 
@@ -53,9 +54,10 @@ public:
     saddr.sin_addr.s_addr = reinterpret_cast<struct in_addr *>(host_entry->h_addr_list[0])->s_addr;
     saddr.sin_port = htons(port);
 
-    int connect_ret = connect(sfd,
-                              reinterpret_cast<struct sockaddr *>(&saddr),
-                              sizeof(saddr));
+    int connect_ret = connect(
+      sfd,
+      reinterpret_cast<struct sockaddr *>(&saddr),
+      sizeof(saddr));
     if (connect_ret < 0) {
       throw std::runtime_error("Failed to connect");
     }

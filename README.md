@@ -20,6 +20,8 @@ are automatically recorded when the application is running:
 
 This `master` branch is compatible with the following ROS 2 versions
 - rolling
+- jazzy
+- iron
 - humble
 - galactic
 - foxy
@@ -194,19 +196,13 @@ their own thread.
 - Communication plugin: `-c CycloneDDS`
 - Docker file: [Dockerfile.CycloneDDS](dockerfiles/Dockerfile.CycloneDDS)
 - Available transports:
-  - Cyclone DDS zero copy requires the
-    [runtime switch](https://github.com/eclipse-cyclonedds/cyclonedds/blob/iceoryx/docs/manual/shared_memory.rst)
-    to be enabled.
-  - When the runtime switch is enabled,
+  - Cyclone DDS zero copy requires
     [RouDi](https://github.com/eclipse-iceoryx/iceoryx/blob/master/doc/website/getting-started/overview.md#roudi)
-    must be running.
-  - If the runtime switch is enabled, but `--zero-copy` is not added, then the plugin will not use
-    the loaned sample API, but iceoryx will still transport the samples.
-  - See [Dockerfile.mashup](dockerfiles/Dockerfile.mashup)
+    to be running.
   -
     | Pub/sub in same process | Pub/sub in different processes on same machine | Pub/sub in different machines |
     |-------|---------------------|--------------------|
-    | INTRA (default), LoanedSamples (`--zero-copy`) | UDP (default), LoanedSamples (`--zero-copy`), SHMEM (enable runtime switch)                 | UDP                |
+    | INTRA (default), SHMEM (`--shared-memory`), LoanedSamples (`--zero-copy`) | UDP (default), SHMEM (`--shared-memory`), LoanedSamples (`--zero-copy`) | UDP |
 
 ### Eclipse Cyclone DDS C++ binding
 
@@ -216,18 +212,12 @@ their own thread.
 - Docker file: [Dockerfile.CycloneDDS-CXX](dockerfiles/Dockerfile.CycloneDDS-CXX)
 - Available transports:
   - Cyclone DDS zero copy requires the
-    [runtime switch](https://github.com/eclipse-cyclonedds/cyclonedds/blob/iceoryx/docs/manual/shared_memory.rst)
-    to be enabled.
-  - When the runtime switch is enabled,
     [RouDi](https://github.com/eclipse-iceoryx/iceoryx/blob/master/doc/website/getting-started/overview.md#roudi)
-    must be running.
-  - If the runtime switch is enabled, but `--zero-copy` is not added, then the plugin will not use
-    the loaned sample API, but iceoryx will still transport the samples.
-  - See [Dockerfile.mashup](dockerfiles/Dockerfile.mashup)
+    to be running.
   -
     | Pub/sub in same process | Pub/sub in different processes on same machine | Pub/sub in different machines |
     |-------|---------------------|--------------------|
-    | INTRA (default), LoanedSamples (`--zero-copy`), SHMEM (enable runtime switch) | UDP (default), LoanedSamples (`--zero-copy`), SHMEM (enable runtime switch)                 | UDP                |
+    | INTRA (default), SHMEM (`--shared-memory`), LoanedSamples (`--zero-copy`) | UDP (default), SHMEM (`--shared-memory`), LoanedSamples (`--zero-copy`) | UDP |
 
 ### Eclipse iceoryx
 
@@ -333,7 +323,7 @@ through the ROS 2 `rclcpp::publisher` and `rclcpp::subscriber` API.
 - Available transports:
   | Pub/sub in same process | Pub/sub in different processes on same machine | Pub/sub in different machines |
   |-------|---------------------|--------------------|
-  | UDP (default), LoanedSamples (`--zero_copy`), SHMEM (configurable with Apex.OS)  | UDP (default), LoanedSamples (`--zero_copy`), SHMEM (configurable with Apex.OS)                | UDP                |
+  | UDP (default), SHMEM (`--shared-memory`), LoanedSamples (`--zero_copy`) | UDP (default), SHMEM (`--shared-memory`), LoanedSamples (`--zero_copy`) | UDP |
 
 ## Analyze the results
 
@@ -353,73 +343,9 @@ export APEX_PERFORMANCE_TEST="
 "
 ```
 
-### Plot results
+## Plot the results
 
-The performance_test tool provides several tools to plot the generated results:
-
-1. Results rendered on a PDF file: handy to share results
-    <img src="plotter_generated_pdf.png"  width="1000">
-1. Results rendered in a Jupyter notebook: used to compare multiple experiments
-    <img src="performance_test/helper_scripts/apex_performance_plotter/example_plot_two_experiments.png"  width="1000">
-
-#### Installation
-
-The plot tool requires python3 and texlive. On an Ubuntu system you will need to
-install the following packages:
-
-```shell
-sudo apt-get install python3 python3-pip texlive texlive-pictures texlive-luatex texlive-latex-extra
-```
-
-Start a Python virtual environment:
-
-```shell
-python3 -m venv venv
-source venv/bin/activate
-```
-
- Install the required Python packages in that virtual environment:
-
-```shell
-cd performance_test/helper_scripts/apex_performance_plotter
-pip3 install wheel
-pip3 install .
-```
-
-#### Usage
-
-To generate a PDF from the log file, invoke the `perfplot` binary installed in the previous step:
-
-`perfplot <filename1> <filename2> ...`
-
-Be sure to also check `perfplot -h` for additional options.
-
->>>
-:point_up: **Common Pitfalls**
-
-All of the latency metrics are collected and calculated by the subscriber process.
-For interprocess communication, it is recommended to provide different prefixes for
-the log files:
-
-```shell
-perf_test -c rclcpp-single-threaded-executor --msg Array1k -p 0 -s 1 -l log_sub.csv
-perf_test -c rclcpp-single-threaded-executor --msg Array1k -p 1 -s 0 -l log_pub.csv
-```
-
-Then, to plot the latency metrics, invoke perfplot on the subscriber's log file.
-If perfplot is invoked on the publisher's log file, then the CPU and memory
-metrics will be plotted, but the latency plot will be empty.
->>>
-
-To analyze the results in a Jupyter notebook run the following commands:
-
-```shell
-pipenv shell
-jupyter notebook plot_logs.ipynb
-
-# When you are done, deactivate the venv
-deactivate
-```
+To plot the results in the JSON or CSV log files, see the [plotter README](../plotter).
 
 ## Architecture
 
