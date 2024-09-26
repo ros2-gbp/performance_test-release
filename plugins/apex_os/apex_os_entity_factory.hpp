@@ -22,60 +22,64 @@
 #include "performance_test/utilities/for_each.hpp"
 #include "performance_test/generated_messages/messages.hpp"
 
-namespace performance_test {
+namespace performance_test
+{
 
-class ApexOsEntityFactory {
+class ApexOsEntityFactory
+{
 public:
   static std::shared_ptr<ApexOsPublisherEntity> get_publisher(
-    const std::string &msg_name,
-    PublisherStats &stats,
-    const ExperimentConfiguration &ec)
+    const std::string & msg_name,
+    PublisherStats & stats,
+    const ExperimentConfiguration & ec)
   {
     std::shared_ptr<ApexOsPublisherEntity> ptr;
     performance_test::for_each(
-        messages::MessageTypeList(),
-        [&ptr, msg_name, &stats, &ec](const auto &msg_type) {
-          using T =
-              std::remove_cv_t<std::remove_reference_t<decltype(msg_type)>>;
-          if (T::msg_name() == msg_name) {
-            if (ptr) {
-              throw std::runtime_error(
-                  "It seems that two msgs have the same name");
-            }
-            ptr = std::make_shared<ApexOsPublisher<typename T::RosType>>(
-                stats, ec);
+      messages::MessageTypeList(),
+      [&ptr, msg_name, &stats, &ec](const auto & msg_type) {
+        using T =
+        std::remove_cv_t<std::remove_reference_t<decltype(msg_type)>>;
+        if (T::msg_name() == msg_name) {
+          if (ptr) {
+            throw std::runtime_error(
+              "It seems that two msgs have the same name");
           }
-        });
+          ptr = std::make_shared<ApexOsPublisher<typename T::RosType>>(
+            stats, ec);
+        }
+      });
     if (!ptr) {
-      throw std::runtime_error("A topic with the requested name does not exist "
-                               "or communication mean not supported.");
+      throw std::runtime_error(
+              "A topic with the requested name does not exist "
+              "or communication mean not supported.");
     }
     return ptr;
   }
 
   static std::shared_ptr<ApexOsSubscriberEntity> get_subscriber(
-    const std::string &msg_name,
-    SubscriberStats &stats,
-    const ExperimentConfiguration &ec)
+    const std::string & msg_name,
+    SubscriberStats & stats,
+    const ExperimentConfiguration & ec)
   {
     std::shared_ptr<ApexOsSubscriberEntity> ptr;
     performance_test::for_each(
-        messages::MessageTypeList(),
-        [&ptr, msg_name, &stats, &ec](const auto &msg_type) {
-          using T =
-              std::remove_cv_t<std::remove_reference_t<decltype(msg_type)>>;
-          if (T::msg_name() == msg_name) {
-            if (ptr) {
-              throw std::runtime_error(
-                  "It seems that two msgs have the same name");
-            }
-            ptr = std::make_shared<ApexOsSubscriber<typename T::RosType>>(
-                stats, ec);
+      messages::MessageTypeList(),
+      [&ptr, msg_name, &stats, &ec](const auto & msg_type) {
+        using T =
+        std::remove_cv_t<std::remove_reference_t<decltype(msg_type)>>;
+        if (T::msg_name() == msg_name) {
+          if (ptr) {
+            throw std::runtime_error(
+              "It seems that two msgs have the same name");
           }
-        });
+          ptr = std::make_shared<ApexOsSubscriber<typename T::RosType>>(
+            stats, ec);
+        }
+      });
     if (!ptr) {
-      throw std::runtime_error("A topic with the requested name does not exist "
-                               "or communication mean not supported.");
+      throw std::runtime_error(
+              "A topic with the requested name does not exist "
+              "or communication mean not supported.");
     }
     return ptr;
   }

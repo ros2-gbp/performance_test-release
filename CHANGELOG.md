@@ -2,6 +2,46 @@
 
 ## X.Y.Z (YYYY/MM/DD)
 
+## 2.3.0 (2024/09/24)
+
+### Removed
+- Moved `apex_performance_plotter` to its own package [here](../plotter)
+
+## 2.2.0 (2024/05/15)
+
+### Added
+- performance_test can be built with ROS 2 Iron and Jazzy
+### Changed
+- Renamed the `--dds-domain_id` CLI arg to `--dds-domain-id`
+- When `--dds-domain-id` is unspecified, fall back to the `ROS_DOMAIN_ID` environment variable
+- `--zero-copy` has been separated into two flags:
+  - `--shared-memory`: Enable shared-memory transfer in the plugin. This is meant to replace the
+    need to manually set runtime flags via `CYCLONEDDS_URI`, `APEX_MIDDLEWARE_SETTINGS`, etc.
+  - `--loaned-samples`: When publishing messages in the plugin, borrow loaned samples instead
+    of publishing by copy
+  - `--zero-copy` is now an alias for `--shared-memory --loaned-samples`
+  - Supported plugins include:
+    - `-c CycloneDDS`
+    - `-c CycloneDDS-CXX`
+    - `-c ApexOSPollingSubscription`
+    - `-c rclcpp-*` with `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`
+    - `-c rclcpp-*` with `RMW_IMPLEMENTATION=rmw_fastrtps_cpp`
+
+## 2.1.0 (2024/04/17)
+
+### Added
+- Add new function `prepare()` to the Publisher and Subscriber API, intended
+  to allow participant discovery without blocking the main thread
+### Changed
+- Change the default `--history` arg from `KEEP_ALL` to `KEEP_LAST`
+- Change the default `--history-depth` arg from `1000` to `16`
+- If `--expected-num-pubs` is unspecified, set it to the same value as `-p`
+- If `--expected-num-subs` is unspecified, set it to the same value as `-s`
+### Fixed
+- Removed an unused variable to fix a Clang build
+- Remove unused variable names in the `Plugin` abstract class
+- Fix a potential lockup in PublisherTask on QNX
+
 ## 2.0.0 (2024/03/19)
 
 ### Added

@@ -32,9 +32,13 @@ RoundTripMainRunner::RoundTripMainRunner(const ExperimentConfiguration & ec)
     throw std::invalid_argument(
             "Round-trip main requires exactly one subscriber.");
   }
-  if (ec.is_zero_copy_transfer) {
+  if (ec.use_shared_memory) {
     throw std::invalid_argument(
-            "Round-trip main can not use loaned messages (zero copy).");
+            "Round-trip main can not use shared memory.");
+  }
+  if (ec.use_loaned_samples) {
+    throw std::invalid_argument(
+            "Round-trip main can not use loaned messages.");
   }
 }
 

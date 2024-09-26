@@ -38,7 +38,7 @@ public:
   /// the performance_test core how to construct a Publisher and Subscriber
   /// for the selected message type.
   /// @param pub_sub_registry
-  virtual void register_pub_sub(PubSubRegistry & pub_sub_registry) = 0;
+  virtual void register_pub_sub(PubSubRegistry &) = 0;
 
   /// @brief Register the Plugin's custom Runners.
   ///
@@ -48,7 +48,7 @@ public:
   /// the performance_test core how to construct additional Runners beyond the
   /// built-in Runners.
   /// @param runner_registry
-  virtual void register_custom_runners(RunnerRegistry & runner_registry) {}
+  virtual void register_custom_runners(RunnerRegistry &) {}
 
   /// @brief Set up any global context or shared state necessary for the Pubs and Subs.
   ///
@@ -56,7 +56,7 @@ public:
   /// If there is any global setup to perform, or any shared state to initialize, then
   /// the Plugin should override this method and perform that setup here.
   /// @param ec
-  virtual void global_setup(const ExperimentConfiguration & ec) {}
+  virtual void global_setup(const ExperimentConfiguration &) {}
 
   /// @brief  Tear down any global context or shared state.
   ///
@@ -64,7 +64,7 @@ public:
   /// any global state, remove temporary files, etc., then the Plugin should override this
   /// method and perform that teardown here.
   /// @param ec
-  virtual void global_teardown(const ExperimentConfiguration & ec) {}
+  virtual void global_teardown(const ExperimentConfiguration &) {}
 
   /// @brief Provide Plugin-specific information for the logs.
   ///
