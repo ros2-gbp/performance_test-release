@@ -1,0 +1,4 @@
+# Copyright 2024 Apex.AI, Inc.
+# All rights reserved.
+
+build --cxxopt="-std=c++17"
