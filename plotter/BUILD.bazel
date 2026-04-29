@@ -1,0 +1,35 @@
+# Copyright 2024 Apex.AI, Inc.
+# All rights reserved.
+
+load("@pip_deps//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_library")
+load("@rules_python//python:defs.bzl", "py_binary")
+
+py_library(
+    name = "plotter_lib",
+    srcs = [
+        "plotter/__init__.py",
+        "plotter/load_logfiles.py",
+        "plotter/generate_plots.py",
+    ],
+    imports = ["."],
+    deps = [
+        requirement("click"),
+        requirement("Jinja2"),
+        requirement("pandas"),
+    ],
+    data = [
+        "plotter/template.tex",
+    ],
+)
+
+py_binary(
+    name = "apex_performance_plotter",
+    srcs = ["plotter/apex_performance_plotter.py"],
+    main = "plotter/apex_performance_plotter.py",
+    imports = ["."],
+    deps = [
+        ":plotter_lib",
+    ],
+    visibility = ["//visibility:public"],
+)

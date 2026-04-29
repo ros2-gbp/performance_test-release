@@ -1,0 +1,78 @@
+# docker build . -f dockerfiles/Dockerfile.CycloneDDS-CXX -t performance_test_cyclone_dds_cxx
+# docker run -it --shm-size 2G performance_test_cyclone_dds_cxx bash
+# ros2 run performance_test perf_test -c CycloneDDS-CXX -p 0 -s 1 --zero-copy --reliability RELIABLE --history KEEP_LAST --history-depth 16 --max-runtime 10 --print-to-console &
+# sleep 1
+# ros2 run performance_test perf_test -c CycloneDDS-CXX -p 1 -s 0 --zero-copy --reliability RELIABLE --history KEEP_LAST --history-depth 16
+
+ARG BASE_IMAGE=osrf/ros:rolling-desktop
+FROM $BASE_IMAGE
+
+ARG ROS_DISTRO=rolling
+ARG ICEORYX_VERSION=v2.0.0
+ARG CYCLONEDDS_VERSION=0.9.0b1
+ARG CYCLONEDDSCXX_VERSION=$CYCLONEDDS_VERSION
+
+SHELL ["/bin/bash", "-c"]
+
+RUN apt-get update && \
+    apt-get install -y bison default-jdk libacl1-dev
+
+RUN mkdir -p iceoryx_ws/src && \
+    cd $_ && \
+    git clone https://github.com/eclipse-iceoryx/iceoryx.git -b $ICEORYX_VERSION --depth 1 && \
+    cd .. && \
+    colcon build \
+      --install-base /opt/iceoryx \
+      --cmake-args \
+        -DIOX_MAX_PUBLISHERS=32 \
+        -DIOX_MAX_SUBSCRIBERS=32
+
+RUN source /opt/iceoryx/setup.bash && \
+    git clone https://github.com/eclipse-cyclonedds/cyclonedds.git -b $CYCLONEDDS_VERSION --depth 1 && \
+    cd cyclonedds && \
+    mkdir -p build && \
+    cd build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/cyclonedds -DENABLE_SHM=ON .. && \
+    cmake --build . && \
+    cmake --build . --target install
+
+RUN source /opt/iceoryx/setup.bash && \
+    git clone https://github.com/eclipse-cyclonedds/cyclonedds-cxx.git -b $CYCLONEDDSCXX_VERSION --depth 1 && \
+    cd cyclonedds-cxx && \
+    mkdir -p build && \
+    cd build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/cyclonedds-cxx \
+          -DCMAKE_PREFIX_PATH=/opt/cyclonedds \
+          -DENABLE_SHM=ON \
+          .. && \
+    cmake --build . && \
+    cmake --build . --target install
+
+ADD . /perf_test_ws/src/performance_test
+
+RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
+    source /opt/iceoryx/setup.bash && \
+    cd /perf_test_ws && \
+    colcon build \
+      --install-base /opt/performance_test \
+      --merge-install \
+      --cmake-clean-cache \
+      --cmake-args \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DPERFORMANCE_TEST_PLUGIN=CYCLONEDDS_CXX
+
+RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> /root/setup.bash
+RUN echo 'LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/cyclonedds/lib"' >> /root/setup.bash
+RUN echo 'LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/cyclonedds-cxx/lib"' >> /root/setup.bash
+RUN echo "source /opt/iceoryx/setup.bash" >> /root/setup.bash
+RUN echo 'source /opt/performance_test/setup.bash' >> /root/setup.bash
+
+ADD dockerfiles/roudi_config.toml /etc/iceoryx/roudi_config.toml
+RUN echo "/opt/iceoryx/iceoryx_posh/bin/iox-roudi -c /etc/iceoryx/roudi_config.toml &" >> /root/setup.bash
+
+RUN echo "source /root/setup.bash" >> /root/.bashrc
+
+# Install dependencies for running performance_report
+RUN apt-get update && \
+    apt-get install -y python3-pip && \
+    python3 -m pip install -U bokeh selenium pandas 
