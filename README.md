@@ -1,3 +1,29 @@
+## performance_test (rolling) - 2.3.0-3
+
+The packages in the `performance_test` repository were released into the `rolling` distro by running `/home/cottsay/infra_ws/install/bin/bloom-release -r rolling performance_test` on `Fri, 15 May 2026 20:13:24 -0000`
+
+The `performance_test` package was released.
+
+These packages were explicitly ignored:
+- `performance_report`
+
+Version of package(s) in repository `performance_test`:
+
+- upstream repository: https://gitlab.com/ApexAI/performance_test.git
+- release repository: https://github.com/ros2-gbp/performance_test-release.git
+- rosdistro version: `2.3.0-2`
+- old version: `2.3.0-2`
+- new version: `2.3.0-3`
+
+Versions of tools used:
+
+- bloom version: `0.14.0`
+- catkin_pkg version: `1.1.0`
+- rosdep version: `0.26.0`
+- rosdistro version: `1.0.1`
+- vcstools version: `0.1.42`
+
+
 ## performance_test (rolling) - 2.3.0-1
 
 The packages in the `performance_test` repository were released into the `rolling` distro by running `/usr/bin/bloom-release --rosdistro rolling performance_test` on `Thu, 26 Sep 2024 14:25:08 -0000`
