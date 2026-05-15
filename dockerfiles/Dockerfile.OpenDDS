@@ -1,0 +1,40 @@
+# docker build . -f dockerfiles/Dockerfile.OpenDDS -t performance_test_open_dds
+# docker run -it performance_test_open_dds bash
+# /opt/performance_test/lib/performance_test/perf_test -c OpenDDS --msg Array1k --print-to-console
+
+ARG BASE_IMAGE=osrf/ros:rolling-desktop
+FROM $BASE_IMAGE
+
+ARG ROS_DISTRO=rolling
+ARG OPENDDS_VERSION=DDS-3.13.2
+
+SHELL ["/bin/bash", "-c"]
+
+RUN git clone https://github.com/objectcomputing/OpenDDS.git -b $OPENDDS_VERSION --depth 1 && \
+    cd OpenDDS && \
+    ./configure --no-debug --optimize --no-tests --prefix=/opt/opendds && \
+    make -j$(nproc) && \
+    make install
+
+ADD . /perf_test_ws/src/performance_test
+
+RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
+    cd /perf_test_ws && \
+    colcon build \
+      --install-base /opt/performance_test \
+      --merge-install \
+      --cmake-clean-cache \
+      --cmake-args \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_FLAGS="-w" \
+        -DPERFORMANCE_TEST_PLUGIN=OPENDDS
+
+RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> /root/setup.bash
+RUN echo "source /opt/performance_test/setup.bash" >> /root/setup.bash
+
+RUN echo "source /root/setup.bash" >> /root/.bashrc
+
+# Install dependencies for running performance_report
+RUN apt-get update && \
+    apt-get install -y python3-pip && \
+    python3 -m pip install -U bokeh selenium pandas 
